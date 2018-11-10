@@ -1,5 +1,5 @@
 (defsystem "cc"
-  :depends-on ()
+  :depends-on ("prove")
   :serial t
   :components ((:file "package")
                (:file "cc")))
