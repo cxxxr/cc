@@ -1,12 +1,12 @@
 (in-package :cc)
 
-(defstruct (scanner (:constructor %make-lexer))
+(defstruct (scanner (:constructor %make-scanner))
   name
   input
   position)
 
-(defun make-lexer (name input)
-  (%make-lexer :name name :input input :position 0))
+(defun make-scanner (name input)
+  (%make-scanner :name name :input input :position 0))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 (defun gen-matcher-with-rules (rules)
@@ -35,14 +35,3 @@
 (defun lex (scanner)
   (funcall (get (scanner-name scanner) 'matcher) scanner))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-lexer cc
-  ("\\s+" :skip)
-  ("[a-zA-Z_][0-9a-zA-Z_]*"
-   (values (text) :word))
-  ("[0-9]+"
-   (values (parse-integer (text))
-           :number))
-  ("."
-   (let ((char (char (text) 0)))
-     (values char char))))

@@ -23,42 +23,59 @@
        (let ((*indent* 0))
          ,@body))))
 
-(defun comp (args)
+(define-lexer cc
+  ("\\s+" :skip)
+  ("$" (values :eof :eof))
+  ("[a-zA-Z_][0-9a-zA-Z_]*"
+   (values (text) :word))
+  ("[0-9]+"
+   (values (parse-integer (text))
+           :number))
+  ("."
+   (let ((char (char (text) 0)))
+     (values char char))))
+
+(defun comp (code)
   (write-line ".intel_syntax noprefix")
   (write-line ".global _main")
   (write-line "_main:")
-  (unless (consp args) (setf args (list args)))
   (with-assemble ()
     (do-indent 1)
-    (case (first args)
-      ((+)
-       (pop args)
-       (mov "rax" (pop args)))
-      ((-)
-       (pop args)
-       (mov "rax" (- (pop args))))
-      (otherwise
-       (let ((x (pop args)))
-         (assert (integerp x))
-         (mov "rax" x))))
-    (loop :for (op arg) :on args :by #'cddr
-          :do
-          (assert (integerp arg))
-          (ecase op
-            (+ (add "rax" arg))
-            (- (sub "rax" arg))))
-    (ret)
-    (do-indent -1))
-  (values))
+    (let ((scanner (make-scanner 'cc code)))
+      (multiple-value-bind (value kind) (lex scanner)
+        (case kind
+          ((#\+)
+           (multiple-value-bind (value kind) (lex scanner)
+             (assert (eq kind :number))
+             (mov "rax" value)))
+          ((#\-)
+           (multiple-value-bind (value kind) (lex scanner)
+             (assert (eq kind :number))
+             (mov "rax" (- value))))
+          (otherwise
+           (assert (eq kind :number))
+           (mov "rax" value))))
+      (loop
+       (multiple-value-bind (value kind) (lex scanner)
+         (declare (ignore value))
+         (when (eq kind :eof) (return))
+         (assert (member kind '(#\+ #\-)))
+         (multiple-value-bind (value2 kind2) (lex scanner)
+           (assert (eq kind2 :number))
+           (ecase kind
+             (#\+ (add "rax" value2))
+             (#\- (sub "rax" value2))))))
+      (ret)
+      (do-indent -1))))
 
-(defun comp-test (form value)
+(defun comp-test (input value)
   (let ((directory (asdf:system-source-directory :cc)))
     (uiop:with-temporary-file (:stream stream
                                :pathname pathname
                                :type "s"
                                :directory directory)
       (let ((*standard-output* stream))
-        (comp form))
+        (comp input))
       :close-stream
       (prove:is
        (nth-value 2 (uiop:run-program
@@ -73,9 +90,9 @@
 (defun test ()
   (let (#+lispworks (prove.color:*enable-colors* nil))
     (prove:plan nil)
-    (comp-test 42 42)
-    (comp-test '(5 + 20 - 4) 21)
-    (comp-test '(- 1) 255)
-    (comp-test '(- 5 + 10) 5)
-    (comp-test '(+ 3 - 1) 2)
+    (comp-test "42" 42)
+    (comp-test "5 + 20 - 4" 21)
+    (comp-test "-1" 255)
+    (comp-test "-5+   10" 5)
+    (comp-test "+3 - 1" 2)
     (prove:finalize)))
