@@ -1,3 +1,3 @@
 (defpackage :cc
-  (:use :cl)
+  (:add-use-defaults t)
   (:export))
