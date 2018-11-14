@@ -65,8 +65,24 @@
       (gen-svm ast)
       (nreverse code))))
 
+(defun svm-to-wat (code)
+  `(module
+    (func (result i32)
+          ,@(loop :for instr :in code
+                  :collect (trivia:ematch instr
+                             ((list 'push arg)
+                              `(i32.const ,arg))
+                             ((list '+)
+                              `(i32.add))
+                             ((list '-)
+                              `(i32.sub))
+                             ((list '*)
+                              `(i32.mul))
+                             ((list '/)
+                              `(i32.div_s)))))))
+
 (defun comp (code)
   (let ((expr (parse (let ((scanner (make-scanner 'cc code)))
                        (lambda ()
                          (lex scanner))))))
-    (gen-svm expr)))
+    (svm-to-wat (gen-svm expr))))
