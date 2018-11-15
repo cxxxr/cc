@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang=en>
+ <head>
+  <meta charset=UTF-8>
+  <title>Hello wasm</title>
+ </head>
+ <body>
+  <div id='test'></div>
+ </body>
+ <script>
+   var importObject = {
+     console: {
+       log: function(arg) {
+         console.log(arg);
+       }
+     }
+   }
+
+   const bytes = new Uint8Array({{var wasm}});
+   WebAssembly.instantiate(bytes, importObject).then(results => {
+     let result = results.instance.exports.main();
+     console.log(result);
+     document.getElementById('test').innerText = `Result: ${result}`;
+   });
+   
+ </script>
+</html>

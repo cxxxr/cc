@@ -1,3 +1,4 @@
 a.out
 *.s
 *.64xfasl
+wasm/*

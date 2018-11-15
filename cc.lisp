@@ -67,7 +67,7 @@
 
 (defun svm-to-wat (code)
   `(module
-    (func (result i32)
+    (func $main (result i32)
           ,@(loop :for instr :in code
                   :collect (trivia:ematch instr
                              ((list 'push arg)
@@ -79,10 +79,36 @@
                              ((list '*)
                               `(i32.mul))
                              ((list '/)
-                              `(i32.div_s)))))))
+                              `(i32.div_s)))))
+    (export "main" (func $main))))
+
+(defun print-wat (wat)
+  (let ((*print-case* :downcase))
+    (pprint wat)))
+
+(defun wat-to-wasm (wat)
+  (with-open-file (*standard-output* "wasm/simple.wat"
+                                     :direction :output
+                                     :if-exists :supersede
+                                     :if-does-not-exist :create)
+    (print-wat wat))
+  (uiop:run-program "cd wasm; wat2wasm simple.wat -o simple.wasm")
+  (alexandria:read-file-into-byte-vector "wasm/simple.wasm"))
+
+(defun octets-to-js-array (octets)
+  (format nil "[~{~D~^,~}]" (coerce octets 'list)))
+
+(defun gen-html-file (wasm-octets)
+  (with-open-file (*standard-output* "./index.html"
+                                     :direction :output
+                                     :if-exists :supersede
+                                     :if-does-not-exist :create)
+    (zen:render-file "./template.html" :wasm (octets-to-js-array wasm-octets))))
 
 (defun comp (code)
-  (let ((expr (parse (let ((scanner (make-scanner 'cc code)))
-                       (lambda ()
-                         (lex scanner))))))
-    (svm-to-wat (gen-svm expr))))
+  (let* ((expr (parse (let ((scanner (make-scanner 'cc code)))
+                        (lambda ()
+                          (lex scanner)))))
+         (wat (svm-to-wat (gen-svm expr))))
+    (gen-html-file
+     (wat-to-wasm wat))))
