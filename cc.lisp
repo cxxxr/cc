@@ -14,18 +14,19 @@
    (x :initarg :x :reader ast-x)
    (y :initarg :y :reader ast-y)))
 
-(defclass add (binary-operator) ())
-(defclass sub (binary-operator) ())
-(defclass mul (binary-operator) ())
-(defclass div (binary-operator) ())
-(defclass remainder (binary-operator) ())
-(defclass assign (binary-operator) ())
+(defclass binop-add (binary-operator) ())
+(defclass binop-sub (binary-operator) ())
+(defclass binop-mul (binary-operator) ())
+(defclass binop-div (binary-operator) ())
+(defclass binop-rem (binary-operator) ())
+(defclass binop-assign (binary-operator) ())
+(defclass binop-eq (binary-operator) ())
 
 (defclass unary-operator (ast)
   ((op :initarg :op :reader ast-op)
    (x :initarg :x :reader ast-x)))
 
-(defclass negate (unary-operator) ())
+(defclass unop-negate (unary-operator) ())
 
 (defclass ident (ast)
   ((name :initarg :name :reader ident-name)
@@ -47,6 +48,8 @@
   ("[0-9]+"
    (values :number
            (parse-integer (text))))
+  ("=="
+   (values :eq :eq))
   ("."
    (let ((char (char (text) 0)))
      (values char char))))
@@ -54,19 +57,20 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
 (defun accept-parsed-binary-expression (a b c)
   (make-instance (ecase b
-                   (#\= 'assign)
-                   (#\+ 'add)
-                   (#\- 'sub)
-                   (#\* 'mul)
-                   (#\/ 'div)
-                   (#\% 'remainder))
+                   (#\= 'binop-assign)
+                   (#\+ 'binop-add)
+                   (#\- 'binop-sub)
+                   (#\* 'binop-mul)
+                   (#\/ 'binop-div)
+                   (#\% 'binop-rem)
+                   (:eq 'binop-eq))
                  :x a
                  :y c))
 
 (defun accept-parsed-unary-expression (a b)
   (ecase a
     (#\+ b)
-    (#\- (make-instance 'negate :x b))))
+    (#\- (make-instance 'unop-negate :x b))))
 
 (defun accept-parsed-paren-expression (a b c)
   (declare (ignore a c))
@@ -85,8 +89,8 @@
 
 (yacc:define-parser *parser*
   (:start-symbol program)
-  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% :number :word))
-  (:precedence ((:right #\=) (:left #\* #\/ #\%) (:left #\+ #\-)))
+  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% :number :word :eq))
+  (:precedence ((:left #\* #\/ #\%) (:left #\+ #\-) (:left :eq) (:right #\=)))
   (program
    (stats #'accept-parsed-program))
   (stats
@@ -99,6 +103,7 @@
    (expression #\* expression #'accept-parsed-binary-expression)
    (expression #\/ expression #'accept-parsed-binary-expression)
    (expression #\% expression #'accept-parsed-binary-expression)
+   (expression :eq expression #'accept-parsed-binary-expression)
    term)
   (term
    :number
@@ -118,6 +123,10 @@
   (let ((code '()))
     (labels ((gen (x)
                (push x code))
+             (gen-binop (x y op)
+               (gen-rec x)
+               (gen-rec y)
+               (gen `(,op)))
              (gen-rec (ast)
                (trivia:match ast
                  ((program statements)
@@ -128,32 +137,24 @@
                               (gen '(drop)))))
                  ((ident num)
                   (gen `(get_local ,num)))
-                 ((assign x y)
+                 ((binop-assign x y)
                   (trivia:ematch x
                     ((ident num)
                      (gen-rec y)
                      (gen `(tee_local ,num)))))
-                 ((add x y)
-                  (gen-rec x)
-                  (gen-rec y)
-                  (gen '(i32.add)))
-                 ((sub x y)
-                  (gen-rec x)
-                  (gen-rec y)
-                  (gen '(i32.sub)))
-                 ((mul x y)
-                  (gen-rec x)
-                  (gen-rec y)
-                  (gen '(i32.mul)))
-                 ((div x y)
-                  (gen-rec x)
-                  (gen-rec y)
-                  (gen '(i32.div)))
-                 ((remainder x y)
-                  (gen-rec x)
-                  (gen-rec y)
-                  (gen '(i32.rem_s)))
-                 ((negate x)
+                 ((binop-add x y)
+                  (gen-binop x y 'i32.add))
+                 ((binop-sub x y)
+                  (gen-binop x y 'i32.sub))
+                 ((binop-mul x y)
+                  (gen-binop x y 'i32.mul))
+                 ((binop-div x y)
+                  (gen-binop x y 'i32.div))
+                 ((binop-rem x y)
+                  (gen-binop x y 'i32.rem_s))
+                 ((binop-eq x y)
+                  (gen-binop x y 'i32.eq))
+                 ((unop-negate x)
                   (gen-rec x)
                   (gen '(i32.const -1))
                   (gen '(i32.mul)))
