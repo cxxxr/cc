@@ -23,31 +23,46 @@
    (let ((char (char (text) 0)))
      (values char char))))
 
-(parsergen:defparser parse
-  ((toplevel expression))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+(defun binary-expression (a b c)
+  (make-instance 'binary-operator
+                 :op (ecase b
+                       (#\+ '+)
+                       (#\- '-)
+                       (#\* '*)
+                       (#\/ '/))
+                 :x a
+                 :y c))
+
+(defun unary-expression (a b)
+  (ecase a
+    (#\+ b)
+    (#\- (make-instance 'unary-operator :op '- :x b))))
+
+(defun paren-expression (a b c)
+  (declare (ignore a c))
+  b)
+
+(defun ident (name)
+  (make-instance 'ident :name name))
+)
+
+(yacc:define-parser *parser*
+  (:start-symbol expression)
+  (:terminals (#\+ #\- #\* #\/ #\( #\) :number :word))
+  (:precedence ((:left #\* #\/) (:left #\+ #\-)))
   (expression
-   ((expression #\+ term)
-    (make-instance 'binary-operator :op '+ :x $1 :y $3))
-   ((expression #\- term)
-    (make-instance 'binary-operator :op '- :x $1 :y $3))
-   ((term)
-    $1))
+   (expression #\+ expression #'binary-expression)
+   (expression #\- expression #'binary-expression)
+   (expression #\* expression #'binary-expression)
+   (expression #\/ expression #'binary-expression)
+   term)
   (term
-   ((term #\* factor)
-    (make-instance 'binary-operator :op '* :x $1 :y $3))
-   ((term #\/ factor)
-    (make-instance 'binary-operator :op '/ :x $1 :y $3))
-   ((factor)
-    $1))
-  (factor
-   ((#\( expression #\))
-    $2)
-   ((#\+ :number)
-    $2)
-   ((#\- :number)
-    (make-instance 'unary-operator :op '- :x $2))
-   ((:number)
-    $1)))
+   :number
+   (:word #'ident)
+   (#\+ :number #'unary-expression)
+   (#\- :number #'unary-expression)
+   (#\( expression #\) #'paren-expression)))
 
 (defun gen-svm (ast)
   (let ((code '()))
@@ -92,7 +107,8 @@
                                      :if-exists :supersede
                                      :if-does-not-exist :create)
     (print-wat wat))
-  (uiop:run-program "cd wasm; wat2wasm simple.wat -o simple.wasm")
+  (uiop:run-program (format nil "cd ~A; wat2wasm simple.wat -o simple.wasm"
+                            (asdf:system-relative-pathname :cc "wasm/")))
   (alexandria:read-file-into-byte-vector "wasm/simple.wasm"))
 
 (defun octets-to-js-array (octets)
@@ -106,9 +122,11 @@
     (zen:render-file "./template.html" :wasm (octets-to-js-array wasm-octets))))
 
 (defun comp (code)
-  (let* ((expr (parse (let ((scanner (make-scanner 'cc code)))
-                        (lambda ()
-                          (lex scanner)))))
+  (let* ((expr (yacc:parse-with-lexer
+                (let ((scanner (make-scanner 'cc code)))
+                  (lambda ()
+                    (lex scanner)))
+                *parser*))
          (wat (svm-to-wat (gen-svm expr))))
     (gen-html-file
      (wat-to-wasm wat))))

@@ -1,7 +1,6 @@
-(require "parsergen")
-
 (defsystem "cc"
   :depends-on ("prove"
+               "yacc"
                "trivia"
                "cl-ppcre"
                "alexandria"
