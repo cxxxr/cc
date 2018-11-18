@@ -9,13 +9,15 @@
    (x :initarg :x :reader ast-x)
    (y :initarg :y :reader ast-y)))
 
+(defclass add (binary-operator) ())
+(defclass sub (binary-operator) ())
+(defclass mul (binary-operator) ())
+(defclass div (binary-operator) ())
+(defclass assign (binary-operator) ())
+
 (defclass unary-operator (ast)
   ((op :initarg :op :reader ast-op)
    (x :initarg :x :reader ast-x)))
-
-(defclass assign (ast)
-  ((lhs :initarg :lhs :reader assign-lhs)
-   (rhs :initarg :rhs :reader assign-rhs)))
 
 (defclass ident (ast)
   ((name :initarg :name :reader ident-name)
@@ -43,13 +45,12 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 (defun binary-expression (a b c)
-  (make-instance 'binary-operator
-                 :op (ecase b
-                       (#\= '=)
-                       (#\+ '+)
-                       (#\- '-)
-                       (#\* '*)
-                       (#\/ '/))
+  (make-instance (ecase b
+                   (#\= 'assign)
+                   (#\+ 'add)
+                   (#\- 'sub)
+                   (#\* 'mul)
+                   (#\/ 'div))
                  :x a
                  :y c))
 
@@ -96,10 +97,22 @@
   (let ((code '()))
     (labels ((gen-svm (ast)
                (trivia:match ast
-                 ((binary-operator op x y)
+                 ((add x y)
                   (gen-svm x)
                   (gen-svm y)
-                  (push `(,op) code))
+                  (push '(+) code))
+                 ((sub x y)
+                  (gen-svm x)
+                  (gen-svm y)
+                  (push '(-) code))
+                 ((mul x y)
+                  (gen-svm x)
+                  (gen-svm y)
+                  (push '(*) code))
+                 ((div x y)
+                  (gen-svm x)
+                  (gen-svm y)
+                  (push '(/) code))
                  ((unary-operator op x)
                   (gen-svm x)
                   (push `(,op) code))
