@@ -19,6 +19,8 @@
   ((op :initarg :op :reader ast-op)
    (x :initarg :x :reader ast-x)))
 
+(defclass negate (unary-operator) ())
+
 (defclass ident (ast)
   ((name :initarg :name :reader ident-name)
    (num :initarg :num :reader ident-num)))
@@ -57,7 +59,7 @@
 (defun unary-expression (a b)
   (ecase a
     (#\+ b)
-    (#\- (make-instance 'unary-operator :op '- :x b))))
+    (#\- (make-instance 'negate :x b))))
 
 (defun paren-expression (a b c)
   (declare (ignore a c))
@@ -81,8 +83,8 @@
   (term
    :number
    (:word #'ident)
-   (#\+ :number #'unary-expression)
-   (#\- :number #'unary-expression)
+   (#\+ expression #'unary-expression)
+   (#\- expression #'unary-expression)
    (#\( expression #\) #'paren-expression)))
 
 (defun parse (code)
@@ -113,9 +115,9 @@
                   (gen-svm x)
                   (gen-svm y)
                   (push '(/) code))
-                 ((unary-operator op x)
+                 ((negate x)
                   (gen-svm x)
-                  (push `(,op) code))
+                  (push `(negate) code))
                  (x
                   (push `(push ,x) code)))))
       (gen-svm ast)
@@ -125,17 +127,20 @@
   `(module
     (func $main (result i32)
           ,@(loop :for instr :in code
-                  :collect (trivia:ematch instr
+                  :append (trivia:ematch instr
                              ((list 'push arg)
-                              `(i32.const ,arg))
+                              `((i32.const ,arg)))
                              ((list '+)
-                              `(i32.add))
+                              `((i32.add)))
                              ((list '-)
-                              `(i32.sub))
+                              `((i32.sub)))
                              ((list '*)
-                              `(i32.mul))
+                              `((i32.mul)))
                              ((list '/)
-                              `(i32.div_s)))))
+                              `((i32.div_s)))
+                             ((list 'negate)
+                              `((i32.const -1)
+                                (i32.mul))))))
     (export "main" (func $main))))
 
 (defun print-wat (wat)
