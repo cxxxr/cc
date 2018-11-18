@@ -150,8 +150,8 @@
                   (gen-rec x)
                   (gen '(i32.const -1))
                   (gen '(i32.mul)))
-                 (x
-                  (gen `(i32.const ,x))))))
+                 ((satisfies integerp)
+                  (gen `(i32.const ,ast))))))
       (gen-rec ast)
       (nreverse code))))
 
