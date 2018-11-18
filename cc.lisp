@@ -18,6 +18,7 @@
 (defclass sub (binary-operator) ())
 (defclass mul (binary-operator) ())
 (defclass div (binary-operator) ())
+(defclass remainder (binary-operator) ())
 (defclass assign (binary-operator) ())
 
 (defclass unary-operator (ast)
@@ -57,7 +58,8 @@
                    (#\+ 'add)
                    (#\- 'sub)
                    (#\* 'mul)
-                   (#\/ 'div))
+                   (#\/ 'div)
+                   (#\% 'remainder))
                  :x a
                  :y c))
 
@@ -83,8 +85,8 @@
 
 (yacc:define-parser *parser*
   (:start-symbol program)
-  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; :number :word))
-  (:precedence ((:right #\=) (:left #\* #\/) (:left #\+ #\-)))
+  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% :number :word))
+  (:precedence ((:right #\=) (:left #\* #\/ #\%) (:left #\+ #\-)))
   (program
    (stats #'accept-parsed-program))
   (stats
@@ -96,6 +98,7 @@
    (expression #\- expression #'accept-parsed-binary-expression)
    (expression #\* expression #'accept-parsed-binary-expression)
    (expression #\/ expression #'accept-parsed-binary-expression)
+   (expression #\% expression #'accept-parsed-binary-expression)
    term)
   (term
    :number
@@ -146,6 +149,10 @@
                   (gen-rec x)
                   (gen-rec y)
                   (gen '(i32.div)))
+                 ((remainder x y)
+                  (gen-rec x)
+                  (gen-rec y)
+                  (gen '(i32.rem_s)))
                  ((negate x)
                   (gen-rec x)
                   (gen '(i32.const -1))
