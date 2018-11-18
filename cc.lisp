@@ -1,5 +1,7 @@
 (in-package :cc)
 
+(defvar *variable-environment*)
+
 (defclass ast () ())
 
 (defclass binary-operator (ast)
@@ -10,6 +12,22 @@
 (defclass unary-operator (ast)
   ((op :initarg :op :reader ast-op)
    (x :initarg :x :reader ast-x)))
+
+(defclass assign (ast)
+  ((lhs :initarg :lhs :reader assign-lhs)
+   (rhs :initarg :rhs :reader assign-rhs)))
+
+(defclass ident (ast)
+  ((name :initarg :name :reader ident-name)
+   (num :initarg :num :reader ident-num)))
+
+(defmethod initialize-instance :around ((ident ident) &rest initargs &key name)
+  (let ((n (or (gethash name *variable-environment*)
+               (setf (gethash name *variable-environment*)
+                     (hash-table-count *variable-environment*)))))
+    (apply #'call-next-method ident
+           :num n
+           initargs)))
 
 (define-lexer cc
   ("\\s+" :skip)
@@ -27,6 +45,7 @@
 (defun binary-expression (a b c)
   (make-instance 'binary-operator
                  :op (ecase b
+                       (#\= '=)
                        (#\+ '+)
                        (#\- '-)
                        (#\* '*)
@@ -49,9 +68,10 @@
 
 (yacc:define-parser *parser*
   (:start-symbol expression)
-  (:terminals (#\+ #\- #\* #\/ #\( #\) :number :word))
-  (:precedence ((:left #\* #\/) (:left #\+ #\-)))
+  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= :number :word))
+  (:precedence ((:right #\=) (:left #\* #\/) (:left #\+ #\-)))
   (expression
+   (expression #\= expression #'binary-expression)
    (expression #\+ expression #'binary-expression)
    (expression #\- expression #'binary-expression)
    (expression #\* expression #'binary-expression)
@@ -63,6 +83,14 @@
    (#\+ :number #'unary-expression)
    (#\- :number #'unary-expression)
    (#\( expression #\) #'paren-expression)))
+
+(defun parse (code)
+  (let ((*variable-environment* (make-hash-table :test 'equal)))
+    (yacc:parse-with-lexer
+     (let ((scanner (make-scanner 'cc code)))
+       (lambda ()
+         (lex scanner)))
+     *parser*)))
 
 (defun gen-svm (ast)
   (let ((code '()))
@@ -122,11 +150,7 @@
     (zen:render-file "./template.html" :wasm (octets-to-js-array wasm-octets))))
 
 (defun comp (code)
-  (let* ((expr (yacc:parse-with-lexer
-                (let ((scanner (make-scanner 'cc code)))
-                  (lambda ()
-                    (lex scanner)))
-                *parser*))
+  (let* ((expr (parse code))
          (wat (svm-to-wat (gen-svm expr))))
     (gen-html-file
      (wat-to-wasm wat))))
