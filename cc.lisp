@@ -21,6 +21,7 @@
 (defclass binop-rem (binary-operator) ())
 (defclass binop-assign (binary-operator) ())
 (defclass binop-eq (binary-operator) ())
+(defclass binop-ne (binary-operator) ())
 
 (defclass unary-operator (ast)
   ((op :initarg :op :reader ast-op)
@@ -50,6 +51,8 @@
            (parse-integer (text))))
   ("=="
    (values :eq :eq))
+  ("!="
+   (values :ne :ne))
   ("."
    (let ((char (char (text) 0)))
      (values char char))))
@@ -63,7 +66,8 @@
                    (#\* 'binop-mul)
                    (#\/ 'binop-div)
                    (#\% 'binop-rem)
-                   (:eq 'binop-eq))
+                   (:eq 'binop-eq)
+                   (:ne 'binop-ne))
                  :x a
                  :y c))
 
@@ -89,8 +93,8 @@
 
 (yacc:define-parser *parser*
   (:start-symbol program)
-  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% :number :word :eq))
-  (:precedence ((:left #\* #\/ #\%) (:left #\+ #\-) (:left :eq) (:right #\=)))
+  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% :number :word :eq :ne))
+  (:precedence ((:left #\* #\/ #\%) (:left #\+ #\-) (:left :eq :ne) (:right #\=)))
   (program
    (stats #'accept-parsed-program))
   (stats
@@ -104,6 +108,7 @@
    (expression #\/ expression #'accept-parsed-binary-expression)
    (expression #\% expression #'accept-parsed-binary-expression)
    (expression :eq expression #'accept-parsed-binary-expression)
+   (expression :ne expression #'accept-parsed-binary-expression)
    term)
   (term
    :number
@@ -128,7 +133,7 @@
                (gen-rec y)
                (gen `(,op)))
              (gen-rec (ast)
-               (trivia:match ast
+               (trivia:ematch ast
                  ((program statements)
                   (loop :for statement* :on statements
                         :for statement := (first statement*)
@@ -154,6 +159,8 @@
                   (gen-binop x y 'i32.rem_s))
                  ((binop-eq x y)
                   (gen-binop x y 'i32.eq))
+                 ((binop-ne x y)
+                  (gen-binop x y 'i32.ne))
                  ((unop-negate x)
                   (gen-rec x)
                   (gen '(i32.const -1))
