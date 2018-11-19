@@ -1,13 +1,24 @@
 (in-package :cc)
 
-(defvar *variable-environment*)
-
 (defclass ast () ())
 
 (defclass program (ast)
-  ((statements
+  ((functions
+    :initarg :functions
+    :reader program-functions)))
+
+(defclass func (ast)
+  ((name
+    :initarg :name
+    :reader func-name)
+   (parameters
+    :initarg :parameters
+    :reader func-parameters)
+   (local-idents
+    :accessor func-local-idents)
+   (statements
     :initarg :statements
-    :reader program-statements)))
+    :reader func-statements)))
 
 (defclass binary-operator (ast)
   ((op :initarg :op :reader ast-op)
@@ -31,15 +42,26 @@
 
 (defclass ident (ast)
   ((name :initarg :name :reader ident-name)
-   (num :initarg :num :reader ident-num)))
+   (num :initarg :num :accessor ident-num)))
 
-(defmethod initialize-instance :around ((ident ident) &rest initargs &key name)
-  (let ((n (or (gethash name *variable-environment*)
-               (setf (gethash name *variable-environment*)
-                     (hash-table-count *variable-environment*)))))
-    (apply #'call-next-method ident
-           :num n
-           initargs)))
+(defclass const (ast)
+  ((value :initarg :value :reader const-value)))
+
+(defun walk-ast (ast function)
+  (funcall function ast
+           (lambda ()
+             (trivia:match ast
+               ((program functions)
+                (dolist (f functions)
+                  (walk-ast f function)))
+               ((func statements)
+                (dolist (stat statements)
+                  (walk-ast stat function)))
+               ((binary-operator x y)
+                (walk-ast x function)
+                (walk-ast y function))
+               ((unary-operator x)
+                (walk-ast x function))))))
 
 (define-lexer cc
   ("\\s+" :skip)
@@ -58,45 +80,77 @@
      (values char char))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-(defun accept-parsed-binary-expression (a b c)
-  (make-instance (ecase b
-                   (#\= 'binop-assign)
-                   (#\+ 'binop-add)
-                   (#\- 'binop-sub)
-                   (#\* 'binop-mul)
-                   (#\/ 'binop-div)
-                   (#\% 'binop-rem)
-                   (:eq 'binop-eq)
-                   (:ne 'binop-ne))
-                 :x a
-                 :y c))
+  (defun accept-parsed-program (functions)
+    (make-instance 'program :functions functions)))
 
-(defun accept-parsed-unary-expression (a b)
-  (ecase a
-    (#\+ b)
-    (#\- (make-instance 'unop-negate :x b))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-function (name parameters { stats })
+    (declare (ignore { }))
+    (make-instance 'func :name name :parameters parameters :statements stats)))
 
-(defun accept-parsed-paren-expression (a b c)
-  (declare (ignore a c))
-  b)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-parameters (paren parameters)
+    (declare (ignore paren))
+    (remove-if (lambda (s) (or (string= s ")") (string= s ",")))
+               (alexandria:flatten parameters))))
 
-(defun make-ident (name)
-  (make-instance 'ident :name name))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun concat-stats (a b c)
+    (declare (ignore b))
+    (cons a c)))
 
-(defun concat-stats (a b c)
-  (declare (ignore b))
-  (cons a c))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-binary-expression (a b c)
+    (make-instance (ecase b
+                     (#\= 'binop-assign)
+                     (#\+ 'binop-add)
+                     (#\- 'binop-sub)
+                     (#\* 'binop-mul)
+                     (#\/ 'binop-div)
+                     (#\% 'binop-rem)
+                     (:eq 'binop-eq)
+                     (:ne 'binop-ne))
+                   :x a
+                   :y c)))
 
-(defun accept-parsed-program (stats)
-  (make-instance 'program :statements stats))
-)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-unary-expression (a b)
+    (ecase a
+      (#\+ b)
+      (#\- (make-instance 'unop-negate :x b)))))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-paren-expression (a b c)
+    (declare (ignore a c))
+    b))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun make-ident (name)
+    (make-instance 'ident :name name)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun make-const (x)
+    (make-instance 'const :value x)))
 
 (yacc:define-parser *parser*
   (:start-symbol program)
-  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% :number :word :eq :ne))
+  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, :number :word :eq :ne))
   (:precedence ((:left #\* #\/ #\%) (:left #\+ #\-) (:left :eq :ne) (:right #\=)))
   (program
-   (stats #'accept-parsed-program))
+   (functions #'accept-parsed-program))
+  (functions
+   ()
+   (func functions #'cons))
+  (func
+   (:word parameters #\{ stats #\} #'accept-parsed-function))
+  (parameters
+   (#\( parameters* #'accept-parsed-parameters))
+  (parameters*
+   (:word parameters** #'list)
+   (#\) #'list))
+  (parameters**
+   (#\, :word parameters** #'list)
+   (#\) #'list))
   (stats
    ()
    (expression #\; stats #'concat-stats))
@@ -111,7 +165,7 @@
    (expression :ne expression #'accept-parsed-binary-expression)
    term)
   (term
-   :number
+   (:number #'make-const)
    (:word #'make-ident)
    (#\+ expression #'accept-parsed-unary-expression)
    (#\- expression #'accept-parsed-unary-expression)
@@ -124,57 +178,89 @@
        (lex scanner)))
    *parser*))
 
-(defun gen-wat-1 (ast)
-  (let ((code '()))
-    (labels ((gen (x)
-               (push x code))
-             (gen-binop (x y op)
-               (gen-rec x)
-               (gen-rec y)
-               (gen `(,op)))
-             (gen-rec (ast)
-               (trivia:ematch ast
-                 ((program statements)
-                  (loop :for statement* :on statements
-                        :for statement := (first statement*)
-                        :do (gen-rec statement)
-                            (when (rest statement*)
-                              (gen '(drop)))))
-                 ((ident num)
-                  (gen `(get_local ,num)))
-                 ((binop-assign x y)
-                  (trivia:ematch x
-                    ((ident num)
-                     (gen-rec y)
-                     (gen `(tee_local ,num)))))
-                 ((binop-add x y)
-                  (gen-binop x y 'i32.add))
-                 ((binop-sub x y)
-                  (gen-binop x y 'i32.sub))
-                 ((binop-mul x y)
-                  (gen-binop x y 'i32.mul))
-                 ((binop-div x y)
-                  (gen-binop x y 'i32.div))
-                 ((binop-rem x y)
-                  (gen-binop x y 'i32.rem_s))
-                 ((binop-eq x y)
-                  (gen-binop x y 'i32.eq))
-                 ((binop-ne x y)
-                  (gen-binop x y 'i32.ne))
-                 ((unop-negate x)
-                  (gen-rec x)
-                  (gen '(i32.const -1))
-                  (gen '(i32.mul)))
-                 ((satisfies integerp)
-                  (gen `(i32.const ,ast))))))
-      (gen-rec ast)
-      (nreverse code))))
+(defun walk-ast-with-name-resolution (ast)
+  (let (env)
+    (declare (special env))
+    (walk-ast ast
+              (lambda (ast cont)
+                (trivia:match ast
+                  ((func)
+                   (let ((env
+                           (make-hash-table :test 'equal)))
+                     (declare (special env))
+                     (funcall cont)
+                     (setf (func-local-idents ast)
+                           (alexandria:hash-table-keys env))))
+                  ((ident name)
+                   (setf (ident-num ast)
+                         (or (gethash name env)
+                             (setf (gethash name env)
+                                   (hash-table-count env))))
+                   (funcall cont))
+                  (_
+                   (funcall cont)))))))
+
+(defun signature-name (str)
+  (intern (format nil "$~A" (string-upcase str))))
+
+(defun gen-seq (&rest args)
+  (apply #'append args))
+
+(defun gen (op &rest args)
+  (list (cons op args)))
+
+(defgeneric gen-wat-aux (ast))
+
+(defmethod gen-wat-aux ((ast program))
+  (mapcar #'gen-wat-aux (program-functions ast)))
+
+(defmethod gen-wat-aux ((ast func))
+  (let ((name (func-name ast))
+        (local-idents (func-local-idents ast))
+        (statements (func-statements ast)))
+    `(func ,(signature-name name) (result i32)
+           ,@(loop :repeat (length local-idents) :collect '(local i32))
+           ,@(loop :for statement* :on statements
+                   :for statement := (first statement*)
+                   :append (gen-wat-aux statement)
+                   :when (rest statement*)
+                   :append (gen 'drop)))))
+
+(defmethod gen-wat-aux ((ast ident))
+  (let ((num (ident-num ast)))
+    (gen 'get_local num)))
+
+(defmethod gen-wat-aux ((ast binop-assign))
+  (let ((x (ast-x ast))
+        (y (ast-y ast)))
+    (trivia:ematch x
+      ((ident num)
+       (gen-seq (gen-wat-aux y)
+                (gen 'tee_local num))))))
+
+(defmethod gen-wat-aux ((ast binary-operator))
+  (gen-seq (gen-wat-aux (ast-x ast))
+           (gen-wat-aux (ast-y ast))
+           (gen (etypecase ast
+                  (binop-add 'i32.add)
+                  (binop-sub 'i32.sub)
+                  (binop-mul 'i32.mul)
+                  (binop-div 'i32.div)
+                  (binop-rem 'i32.rem_s)
+                  (binop-eq 'i32.eq)
+                  (binop-ne 'i32.ne)))))
+
+(defmethod gen-wat-aux ((ast unop-negate))
+  (gen-seq (gen-wat-aux (ast-x ast))
+           (gen 'i32.const -1)
+           (gen 'i32.mul)))
+
+(defmethod gen-wat-aux ((ast const))
+  (gen 'i32.const (const-value ast)))
 
 (defun gen-wat (ast)
   `(module
-    (func $main (result i32)
-          ,@(loop :repeat (hash-table-count *variable-environment*) :collect `(local i32))
-          ,@(gen-wat-1 ast))
+    ,@(gen-wat-aux ast)
     (export "main" (func $main))))
 
 (defun print-wat (wat)
@@ -204,9 +290,10 @@
     (zen:render-file "./template.html" :wasm (octets-to-js-array wasm-octets))))
 
 (defun comp (code)
-  (let ((*variable-environment* (make-hash-table :test 'equal)))
-    (let* ((ast (parse code))
-           (wat (gen-wat ast)))
+  (let ((ast (parse code)))
+    (walk-ast-with-name-resolution ast) 
+    (let ((wat (gen-wat ast)))
       (pprint wat)
+      (terpri)
       (gen-html-file
        (wat-to-wasm wat)))))
