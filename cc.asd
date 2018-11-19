@@ -7,5 +7,8 @@
                "zenekindarl")
   :serial t
   :components ((:file "package")
+               (:file "ast")
                (:file "lexer")
+               (:file "parser")
+               (:file "compile")
                (:file "cc")))

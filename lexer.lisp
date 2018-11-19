@@ -25,8 +25,7 @@
                                                     `(subseq (scanner-input ,',scanner)
                                                              ,',r-start
                                                              ,',r-end)))
-                                         (return-from ,outer (progn ,@body)))))))))))
-  )
+                                         (return-from ,outer (progn ,@body))))))))))))
 
 (defmacro define-lexer (name &body rules)
   `(setf (get ',name 'matcher)
@@ -35,3 +34,18 @@
 (defun lex (scanner)
   (funcall (get (scanner-name scanner) 'matcher) scanner))
 
+(define-lexer cc
+  ("\\s+" :skip)
+  ("$" nil)
+  ("[a-zA-Z_][0-9a-zA-Z_]*"
+   (values :word (text)))
+  ("[0-9]+"
+   (values :number
+           (parse-integer (text))))
+  ("=="
+   (values :eq :eq))
+  ("!="
+   (values :ne :ne))
+  ("."
+   (let ((char (char (text) 0)))
+     (values char char))))
