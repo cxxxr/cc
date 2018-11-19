@@ -9,24 +9,24 @@
   (%make-scanner :name name :input input :position 0))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-(defun gen-matcher-with-rules (rules)
-  (with-unique-names (scanner outer r-start r-end text)
-    `(lambda (,scanner)
-       (block ,outer
-         ,@(loop :for (regex . body) :in rules
-                 :collect `(multiple-value-bind (,r-start ,r-end)
-                               (ppcre:scan ,regex (scanner-input ,scanner)
-                                           :start (scanner-position ,scanner))
-                             (when (eql ,r-start (scanner-position ,scanner))
-                               (setf (scanner-position ,scanner) ,r-end)
-                               ,(if (equal body '(:skip))
-                                    nil
-                                    `(let ((,text (subseq (scanner-input ,scanner)
-                                                          ,r-start
-                                                          ,r-end)))
-                                       (flet ((text () ,text))
-                                         (return-from ,outer (progn ,@body))))))))))))
-)
+  (defun gen-matcher-with-rules (rules)
+    (alexandria:with-unique-names (scanner outer r-start r-end)
+      `(lambda (,scanner)
+         (block ,outer
+           ,@(loop :for (regex . body) :in rules
+                   :collect `(multiple-value-bind (,r-start ,r-end)
+                                 (ppcre:scan ,regex (scanner-input ,scanner)
+                                             :start (scanner-position ,scanner))
+                               (when (eql ,r-start (scanner-position ,scanner))
+                                 (setf (scanner-position ,scanner) ,r-end)
+                                 ,(if (equal body '(:skip))
+                                      nil
+                                      `(macrolet ((text ()
+                                                    `(subseq (scanner-input ,',scanner)
+                                                             ,',r-start
+                                                             ,',r-end)))
+                                         (return-from ,outer (progn ,@body)))))))))))
+  )
 
 (defmacro define-lexer (name &body rules)
   `(setf (get ',name 'matcher)
