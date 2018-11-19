@@ -16,9 +16,12 @@
 
 (defmethod gen-wat-aux ((ast func))
   (let ((name (func-name ast))
+        (parameters (func-parameters ast))
         (local-idents (func-local-idents ast))
         (statements (func-statements ast)))
-    `(func ,(signature-name name) (result i32)
+    `(func ,(signature-name name)
+           ,@(loop :repeat (length parameters) :collect '(param i32))
+           (result i32)
            ,@(loop :repeat (length local-idents) :collect '(local i32))
            ,@(loop :for statement* :on statements
                    :for statement := (first statement*)
@@ -57,6 +60,10 @@
 
 (defmethod gen-wat-aux ((ast const))
   (gen 'i32.const (const-value ast)))
+
+(defmethod gen-wat-aux ((ast call-function))
+  (gen-seq (mapcan #'gen-wat-aux (call-function-arguments ast))
+           (gen 'call (signature-name (call-function-name ast)))))
 
 (defun gen-wat (ast)
   `(module

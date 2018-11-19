@@ -47,6 +47,10 @@
 (defclass const (ast)
   ((value :initarg :value :reader const-value)))
 
+(defclass call-function (ast)
+  ((name :initarg :name :reader call-function-name)
+   (arguments :initarg :arguments :reader call-function-arguments)))
+
 (defun walk-ast (ast function)
   (funcall function ast
            (lambda ()
@@ -61,4 +65,7 @@
                 (walk-ast x function)
                 (walk-ast y function))
                ((unary-operator x)
-                (walk-ast x function))))))
+                (walk-ast x function))
+               ((call-function arguments)
+                (dolist (arg arguments)
+                  (walk-ast arg function)))))))
