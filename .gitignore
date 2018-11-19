@@ -2,3 +2,4 @@ a.out
 *.s
 *.64xfasl
 wasm/*
+index.html
