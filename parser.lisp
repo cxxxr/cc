@@ -19,9 +19,8 @@
                (alexandria:flatten parameters))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun concat-stats (a b c)
-    (declare (ignore b))
-    (cons a c)))
+  (defun concat-stats (first rest)
+    (cons first rest)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-binary-expression (a b c)
@@ -51,6 +50,11 @@
   (defun accept-parsed-paren-expression (a b c)
     (declare (ignore a c))
     b))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-stat-expression (expr \;)
+    (declare (ignore \;))
+    expr))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-call-function (name arguments)
@@ -96,7 +100,9 @@
    (#\) #'list))
   (stats
    ()
-   (expression #\; stats #'concat-stats))
+   (stat stats #'concat-stats))
+  (stat
+   (expression #\; #'accept-parsed-stat-expression))
   (expression
    (expression #\= expression #'accept-parsed-binary-expression)
    (expression #\+ expression #'accept-parsed-binary-expression)
