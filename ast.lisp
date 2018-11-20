@@ -55,6 +55,32 @@
   ((name :initarg :name :reader call-function-name)
    (arguments :initarg :arguments :reader call-function-arguments)))
 
+(defvar *indent-level* 0)
+
+(defun print-indent (stream)
+  (loop :repeat *indent-level* :do (write-string "  " stream)))
+
+(defmethod print-object ((ast ast) stream)
+  (fresh-line stream)
+  (print-indent stream)
+  (format stream "~A {~%" (type-of ast))
+  (let ((*indent-level* (1+ *indent-level*)))
+    (loop :for slot :in (clos:class-slots (class-of ast))
+          :for name := (clos:slot-definition-name slot)
+          :for value := (slot-value ast name)
+          :when (slot-boundp ast name)
+          :do (print-indent stream)
+              (cond ((consp value)
+                     (format stream "~A: (~%" name)
+                     (let ((*indent-level* (1+ *indent-level*)))
+                       (dolist (x value) (prin1 x stream) (terpri stream)))
+                     (print-indent stream)
+                     (format stream ")~%" name))
+                    (t
+                     (format stream "~A: ~S~%" name value)))))
+  (print-indent stream)
+  (write-char #\} stream))
+
 (defun walk-ast (ast function)
   (funcall function ast
            (lambda ()
