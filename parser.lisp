@@ -5,12 +5,12 @@
     (make-instance 'program :functions functions)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun accept-parsed-function (name parameters { stats })
+  (defun accept-parsed-function (name parameters stat-block)
     (declare (ignore { }))
     (make-instance 'func
                    :name name
                    :parameters (mapcar #'make-ident parameters)
-                   :statements stats)))
+                   :stat-block stat-block)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-parameters (paren parameters)
@@ -52,6 +52,11 @@
     b))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-stat-block ({ stats })
+    (declare (ignore { }))
+    (make-instance 'stat-block :statements stats)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-stat-expression (expr \;)
     (declare (ignore \;))
     expr))
@@ -89,7 +94,7 @@
    ()
    (func functions #'cons))
   (func
-   (:word parameters #\{ stats #\} #'accept-parsed-function))
+   (:word parameters stat-block #'accept-parsed-function))
   (parameters
    (#\( parameters* #'accept-parsed-parameters))
   (parameters*
@@ -102,7 +107,10 @@
    ()
    (stat stats #'concat-stats))
   (stat
+   stat-block
    (expression #\; #'accept-parsed-stat-expression))
+  (stat-block
+   (#\{ stats #\} #'accept-parsed-stat-block))
   (expression
    (expression #\= expression #'accept-parsed-binary-expression)
    (expression #\+ expression #'accept-parsed-binary-expression)

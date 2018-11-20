@@ -18,16 +18,20 @@
   (let ((name (func-name ast))
         (parameters (func-parameters ast))
         (local-idents (func-local-idents ast))
-        (statements (func-statements ast)))
+        (stat-block (func-stat-block ast)))
     `(func ,(signature-name name)
            ,@(loop :repeat (length parameters) :collect '(param i32))
            (result i32)
            ,@(loop :repeat (length local-idents) :collect '(local i32))
-           ,@(loop :for statement* :on statements
-                   :for statement := (first statement*)
-                   :append (gen-wat-aux statement)
-                   :when (rest statement*)
-                   :append (gen 'drop)))))
+           ,@(gen-wat-aux stat-block))))
+
+(defmethod gen-wat-aux ((ast stat-block))
+  (let ((statements (stat-block-statements ast)))
+    (loop :for statement* :on statements
+          :for statement := (first statement*)
+          :append (gen-wat-aux statement)
+          :when (rest statement*)
+          :append (gen 'drop))))
 
 (defmethod gen-wat-aux ((ast ident))
   (let ((num (ident-num ast)))

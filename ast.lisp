@@ -16,9 +16,14 @@
     :reader func-parameters)
    (local-idents
     :accessor func-local-idents)
-   (statements
+   (stat-block
+    :initarg :stat-block
+    :reader func-stat-block)))
+
+(defclass stat-block (ast)
+  ((statements
     :initarg :statements
-    :reader func-statements)))
+    :reader stat-block-statements)))
 
 (defclass binary-operator (ast)
   ((op :initarg :op :reader ast-op)
@@ -88,7 +93,9 @@
                ((program functions)
                 (dolist (f functions)
                   (walk-ast f function)))
-               ((func statements)
+               ((func stat-block)
+                (walk-ast stat-block function))
+               ((stat-block statements)
                 (dolist (stat statements)
                   (walk-ast stat function)))
                ((binary-operator x y)
