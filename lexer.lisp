@@ -38,7 +38,10 @@
   ("\\s+" :skip)
   ("$" nil)
   ("[a-zA-Z_][0-9a-zA-Z_]*"
-   (values :word (text)))
+   (let ((word (text)))
+     (alexandria:switch (word :test #'string=)
+       ("if" (values :if :if))
+       (otherwise (values :word word)))))
   ("[0-9]+"
    (values :number
            (parse-integer (text))))

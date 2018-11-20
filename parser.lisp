@@ -62,6 +62,11 @@
     expr))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-if (if \( test \) then)
+    (declare (ignore if \( \) \{ \}))
+    (make-instance 'stat-if :test test :then then)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-call-function (name arguments)
     (make-instance 'call-function :name name :arguments arguments)))
 
@@ -82,7 +87,7 @@
 (yacc:define-parser *parser*
   (:start-symbol program)
   (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, :number :word :eq :ne
-                   :ge :gt :le :lt))
+                   :ge :gt :le :lt :if))
   (:precedence ((:left #\* #\/ #\%)
                 (:left #\+ #\-)
                 (:left :lt :le :gt :ge)
@@ -108,6 +113,7 @@
    (stat stats #'concat-stats))
   (stat
    stat-block
+   (:if #\( expression #\) stat #'accept-parsed-if)
    (expression #\; #'accept-parsed-stat-expression))
   (stat-block
    (#\{ stats #\} #'accept-parsed-stat-block))
@@ -156,8 +162,7 @@
               (lambda (ast cont)
                 (trivia:match ast
                   ((func parameters)
-                   (let ((env
-                           (make-hash-table :test 'equal)))
+                   (let ((env (make-hash-table :test 'equal)))
                      (declare (special env))
                      (dolist (ident parameters)
                        (set-ident-env ident env))
