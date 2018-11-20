@@ -46,6 +46,14 @@
    (values :eq :eq))
   ("!="
    (values :ne :ne))
+  (">="
+   (values :ge :ge))
+  (">"
+   (values :gt :gt))
+  ("<="
+   (values :le :le))
+  ("<"
+   (values :lt :lt))
   ("."
    (let ((char (char (text) 0)))
      (values char char))))

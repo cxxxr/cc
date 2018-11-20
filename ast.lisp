@@ -33,6 +33,10 @@
 (defclass binop-assign (binary-operator) ())
 (defclass binop-eq (binary-operator) ())
 (defclass binop-ne (binary-operator) ())
+(defclass binop-lt (binary-operator) ())
+(defclass binop-le (binary-operator) ())
+(defclass binop-gt (binary-operator) ())
+(defclass binop-ge (binary-operator) ())
 
 (defclass unary-operator (ast)
   ((op :initarg :op :reader ast-op)

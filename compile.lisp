@@ -51,7 +51,11 @@
                   (binop-div 'i32.div)
                   (binop-rem 'i32.rem_s)
                   (binop-eq 'i32.eq)
-                  (binop-ne 'i32.ne)))))
+                  (binop-ne 'i32.ne)
+                  (binop-lt 'i32.lt_s)
+                  (binop-le 'i32.le_s)
+                  (binop-gt 'i32.gt_s)
+                  (binop-ge 'i32.ge_s)))))
 
 (defmethod gen-wat-aux ((ast unop-negate))
   (gen-seq (gen-wat-aux (ast-x ast))

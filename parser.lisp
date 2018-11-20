@@ -33,7 +33,11 @@
                      (#\/ 'binop-div)
                      (#\% 'binop-rem)
                      (:eq 'binop-eq)
-                     (:ne 'binop-ne))
+                     (:ne 'binop-ne)
+                     (:lt 'binop-lt)
+                     (:le 'binop-le)
+                     (:gt 'binop-gt)
+                     (:ge 'binop-ge))
                    :x a
                    :y c)))
 
@@ -68,8 +72,13 @@
 
 (yacc:define-parser *parser*
   (:start-symbol program)
-  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, :number :word :eq :ne))
-  (:precedence ((:left #\* #\/ #\%) (:left #\+ #\-) (:left :eq :ne) (:right #\=)))
+  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, :number :word :eq :ne
+                   :ge :gt :le :lt))
+  (:precedence ((:left #\* #\/ #\%)
+                (:left #\+ #\-)
+                (:left :lt :le :gt :ge)
+                (:left :eq :ne)
+                (:right #\=)))
   (program
    (functions #'accept-parsed-program))
   (functions
@@ -97,6 +106,10 @@
    (expression #\% expression #'accept-parsed-binary-expression)
    (expression :eq expression #'accept-parsed-binary-expression)
    (expression :ne expression #'accept-parsed-binary-expression)
+   (expression :ge expression #'accept-parsed-binary-expression)
+   (expression :gt expression #'accept-parsed-binary-expression)
+   (expression :le expression #'accept-parsed-binary-expression)
+   (expression :lt expression #'accept-parsed-binary-expression)
    call-function
    term)
   (call-function
