@@ -155,7 +155,7 @@
                        (set-ident-env ident env))
                      (funcall cont)
                      (setf (func-local-idents ast)
-                           (alexandria:hash-table-keys env))))
+                           (mapcar #'make-ident (alexandria:hash-table-keys env)))))
                   ((ident)
                    (set-ident-env ast env)
                    (funcall cont))
