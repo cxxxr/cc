@@ -62,9 +62,14 @@
     expr))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun accept-parsed-if (if \( test \) then)
-    (declare (ignore if \( \) \{ \}))
-    (make-instance 'stat-if :test test :then then)))
+  (defun accept-parsed-if (_if \( test \) then else)
+    (declare (ignore _if \( \) \{ \}))
+    (make-instance 'stat-if :test test :then then :else else)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-else (_else stat)
+    (declare (ignore _else))
+    stat))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-call-function (name arguments)
@@ -87,7 +92,7 @@
 (yacc:define-parser *parser*
   (:start-symbol program)
   (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, :number :word :eq :ne
-                   :ge :gt :le :lt :if))
+                   :ge :gt :le :lt :if :else))
   (:precedence ((:left #\* #\/ #\%)
                 (:left #\+ #\-)
                 (:left :lt :le :gt :ge)
@@ -113,8 +118,13 @@
    (stat stats #'concat-stats))
   (stat
    stat-block
-   (:if #\( expression #\) stat #'accept-parsed-if)
+   stat-if
    (expression #\; #'accept-parsed-stat-expression))
+  (stat-if
+   (:if #\( expression #\) stat stat-else #'accept-parsed-if))
+  (stat-else
+   (:else stat #'accept-parsed-else)
+   ())
   (stat-block
    (#\{ stats #\} #'accept-parsed-stat-block))
   (expression

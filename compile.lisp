@@ -34,12 +34,18 @@
           :append (gen 'drop))))
 
 (defmethod gen-wat-aux ((ast stat-if))
-  (gen-seq (gen-wat-aux (stat-if-test ast))
-           `((if (result i32) (i32.eqz)
-                 (then
-                  ,@(gen 'i32.const 0))
-                 (else
-                  ,@(gen-wat-aux (stat-if-then ast)))))))
+  (let* ((then (stat-if-then ast))
+         (else (stat-if-else ast))
+         (then-code (gen-wat-aux then))
+         (else-code (if else
+                        (gen-wat-aux else)
+                        (gen 'i32.const 0))))
+    (gen-seq (gen-wat-aux (stat-if-test ast))
+             `((if (result i32) (i32.eqz)
+                   (then
+                    ,@else-code)
+                   (else
+                    ,@then-code))))))
 
 (defmethod gen-wat-aux ((ast ident))
   (let ((num (ident-num ast)))

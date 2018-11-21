@@ -41,6 +41,7 @@
    (let ((word (text)))
      (alexandria:switch (word :test #'string=)
        ("if" (values :if :if))
+       ("else" (values :else :else))
        (otherwise (values :word word)))))
   ("[0-9]+"
    (values :number

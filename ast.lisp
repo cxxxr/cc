@@ -31,7 +31,10 @@
     :reader stat-if-test)
    (then
     :initarg :then
-    :reader stat-if-then)))
+    :reader stat-if-then)
+   (else
+    :initarg :else
+    :reader stat-if-else)))
 
 (defclass binary-operator (ast)
   ((op :initarg :op :reader ast-op)
@@ -106,9 +109,10 @@
                ((stat-block statements)
                 (dolist (stat statements)
                   (walk-ast stat function)))
-               ((stat-if test then)
+               ((stat-if test then else)
                 (walk-ast test function)
-                (walk-ast then function))
+                (walk-ast then function)
+                (walk-ast else function))
                ((binary-operator x y)
                 (walk-ast x function)
                 (walk-ast y function))
