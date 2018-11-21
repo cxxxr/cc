@@ -4,7 +4,8 @@
                "trivia"
                "cl-ppcre"
                "alexandria"
-               "zenekindarl")
+               "zenekindarl"
+               "closer-mop")
   :serial t
   :components ((:file "package")
                (:file "ast")
