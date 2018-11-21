@@ -1,6 +1,5 @@
 (defsystem "cc"
-  :depends-on ("prove"
-               "yacc"
+  :depends-on ("yacc"
                "trivia"
                "cl-ppcre"
                "alexandria"
