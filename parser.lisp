@@ -72,6 +72,15 @@
     stat))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-return (&rest args)
+    (declare (ignore _return))
+    (trivia:ematch args
+      ((list _ expr #\;)
+       (make-instance 'stat-return :expr expr))
+      ((list _ #\;)
+       (make-instance 'stat-return :expr nil)))))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-call-function (name arguments)
     (make-instance 'call-function :name name :arguments arguments)))
 
@@ -92,7 +101,7 @@
 (yacc:define-parser *parser*
   (:start-symbol program)
   (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, :number :word :eq :ne
-                   :ge :gt :le :lt :if :else))
+                   :ge :gt :le :lt :if :else :return))
   (:precedence ((:left #\* #\/ #\%)
                 (:left #\+ #\-)
                 (:left :lt :le :gt :ge)
@@ -119,6 +128,7 @@
   (stat
    stat-block
    stat-if
+   stat-return
    (expression #\; #'accept-parsed-stat-expression))
   (stat-if
    (:if #\( expression #\) stat stat-else #'accept-parsed-if))
@@ -127,6 +137,9 @@
    ())
   (stat-block
    (#\{ stats #\} #'accept-parsed-stat-block))
+  (stat-return
+   (:return expression #\; #'accept-parsed-return)
+   (:return #\; #'accept-parsed-return))
   (expression
    (expression #\= expression #'accept-parsed-binary-expression)
    (expression #\+ expression #'accept-parsed-binary-expression)

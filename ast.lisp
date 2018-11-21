@@ -36,6 +36,12 @@
     :initarg :else
     :reader stat-if-else)))
 
+(defclass stat-return (ast)
+  ((expr
+    :initform nil
+    :initarg :expr
+    :reader stat-return-expr)))
+
 (defclass binary-operator (ast)
   ((op :initarg :op :reader ast-op)
    (x :initarg :x :reader ast-x)
@@ -113,6 +119,8 @@
                 (walk-ast test function)
                 (walk-ast then function)
                 (walk-ast else function))
+               ((stat-return expr)
+                (walk-ast expr function))
                ((binary-operator x y)
                 (walk-ast x function)
                 (walk-ast y function))

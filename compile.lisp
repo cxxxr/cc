@@ -23,14 +23,14 @@
            ,@(loop :repeat (length parameters) :collect '(param i32))
            (result i32)
            ,@(loop :repeat (length local-idents) :collect '(local i32))
-           ,@(gen-wat-aux stat-block))))
+           ,@(gen-wat-aux stat-block)
+           ,@(gen 'i32.const 0)
+           ,@(gen 'return))))
 
 (defmethod gen-wat-aux ((ast stat-block))
   (let ((statements (stat-block-statements ast)))
-    (loop :for statement* :on statements
-          :for statement := (first statement*)
+    (loop :for statement :in statements
           :append (gen-wat-aux statement)
-          :when (rest statement*)
           :append (gen 'drop))))
 
 (defmethod gen-wat-aux ((ast stat-if))
@@ -46,6 +46,10 @@
                     ,@else-code)
                    (else
                     ,@then-code))))))
+
+(defmethod gen-wat-aux ((ast stat-return))
+  (gen-seq (gen-wat-aux (stat-return-expr ast))
+           (gen 'return)))
 
 (defmethod gen-wat-aux ((ast ident))
   (let ((num (ident-num ast)))
