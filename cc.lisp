@@ -7,3 +7,6 @@
     (terpri)
     (gen-html-file
      (wat-to-wasm wat))))
+
+(defun comp-file (file)
+  (comp (uiop:read-file-string file)))
