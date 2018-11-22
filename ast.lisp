@@ -53,9 +53,8 @@
     :reader stat-goto-name)))
 
 (defclass binop (ast)
-  ((op :initarg :op :reader ast-op)
-   (x :initarg :x :reader ast-x)
-   (y :initarg :y :reader ast-y)))
+  ((x :initarg :x :reader binop-x)
+   (y :initarg :y :reader binop-y)))
 
 (defclass binop-add (binop) ())
 (defclass binop-sub (binop) ())
@@ -71,8 +70,7 @@
 (defclass binop-ge (binop) ())
 
 (defclass unary-operator (ast)
-  ((op :initarg :op :reader ast-op)
-   (x :initarg :x :reader ast-x)))
+  ((x :initarg :x :reader binop-x)))
 
 (defclass unop-negate (unary-operator) ())
 

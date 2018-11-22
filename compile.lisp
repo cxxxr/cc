@@ -56,16 +56,16 @@
     (gen 'get_local num)))
 
 (defmethod gen-wat-aux ((ast binop-assign))
-  (let ((x (ast-x ast))
-        (y (ast-y ast)))
+  (let ((x (binop-x ast))
+        (y (binop-y ast)))
     (trivia:ematch x
       ((ident num)
        (gen-seq (gen-wat-aux y)
                 (gen 'tee_local num))))))
 
 (defmethod gen-wat-aux ((ast binop))
-  (gen-seq (gen-wat-aux (ast-x ast))
-           (gen-wat-aux (ast-y ast))
+  (gen-seq (gen-wat-aux (binop-x ast))
+           (gen-wat-aux (binop-y ast))
            (gen (etypecase ast
                   (binop-add 'i32.add)
                   (binop-sub 'i32.sub)
@@ -80,7 +80,7 @@
                   (binop-ge 'i32.ge_s)))))
 
 (defmethod gen-wat-aux ((ast unop-negate))
-  (gen-seq (gen-wat-aux (ast-x ast))
+  (gen-seq (gen-wat-aux (binop-x ast))
            (gen 'i32.const -1)
            (gen 'i32.mul)))
 
