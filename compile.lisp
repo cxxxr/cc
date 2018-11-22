@@ -63,7 +63,7 @@
        (gen-seq (gen-wat-aux y)
                 (gen 'tee_local num))))))
 
-(defmethod gen-wat-aux ((ast binary-operator))
+(defmethod gen-wat-aux ((ast binop))
   (gen-seq (gen-wat-aux (ast-x ast))
            (gen-wat-aux (ast-y ast))
            (gen (etypecase ast
