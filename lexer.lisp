@@ -43,6 +43,7 @@
        ("if" (values :if :if))
        ("else" (values :else :else))
        ("return" (values :return :return))
+       ("goto" (values :goto :goto))
        (otherwise (values :word word)))))
   ("[0-9]+"
    (values :number

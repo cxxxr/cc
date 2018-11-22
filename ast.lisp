@@ -42,6 +42,16 @@
     :initarg :expr
     :reader stat-return-expr)))
 
+(defclass stat-label (ast)
+  ((name
+    :initarg :name
+    :reader stat-label-name)))
+
+(defclass stat-goto (ast)
+  ((name
+    :initarg :name
+    :reader stat-goto-name)))
+
 (defclass binary-operator (ast)
   ((op :initarg :op :reader ast-op)
    (x :initarg :x :reader ast-x)

@@ -81,6 +81,16 @@
        (make-instance 'stat-return :expr nil)))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-goto (goto name delim)
+    (declare (ignore goto delim))
+    (make-instance 'stat-goto :name name)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun accept-parsed-label (name colon)
+    (declare (ignore colon))
+    (make-instance 'stat-label :name name)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-call-function (name arguments)
     (make-instance 'call-function :name name :arguments arguments)))
 
@@ -100,8 +110,8 @@
 
 (yacc:define-parser *parser*
   (:start-symbol program)
-  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, :number :word :eq :ne
-                   :ge :gt :le :lt :if :else :return))
+  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, #\: :number :word :eq :ne
+                   :ge :gt :le :lt :if :else :return :goto))
   (:precedence ((:left #\* #\/ #\%)
                 (:left #\+ #\-)
                 (:left :lt :le :gt :ge)
@@ -129,6 +139,8 @@
    stat-block
    stat-if
    stat-return
+   stat-goto
+   stat-label
    (expression #\; #'accept-parsed-stat-expression))
   (stat-if
    (:if #\( expression #\) stat stat-else #'accept-parsed-if))
@@ -140,6 +152,10 @@
   (stat-return
    (:return expression #\; #'accept-parsed-return)
    (:return #\; #'accept-parsed-return))
+  (stat-goto
+   (:goto :word #\; #'accept-parsed-goto))
+  (stat-label
+   (:word #\: #'accept-parsed-label))
   (expression
    (expression #\= expression #'accept-parsed-binary-expression)
    (expression #\+ expression #'accept-parsed-binary-expression)
