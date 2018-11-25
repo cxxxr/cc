@@ -1,6 +1,7 @@
 (in-package :cc)
 
 (defvar *compile1-variables* '())
+(defvar *compile1-label-counter* 0)
 
 (defun compile1-local-variable-p (name)
   (position name *compile1-variables* :test #'string= :key #'ident-name))
@@ -20,7 +21,8 @@
 
 (defmethod compile1 ((ast program) return-value-p)
   (loop :for func :in (program-functions ast)
-        :collect (compile1 func nil)))
+        :collect (let ((*compile1-label-counter* 0))
+                   (compile1 func nil))))
 
 (defmethod compile1 ((ast func) return-value-p)
   (let ((*compile1-variables* (func-parameters ast)))
@@ -34,7 +36,8 @@
         :append (compile1 statement nil)))
 
 (defmethod compile1 ((ast stat-if) return-value-p)
-  (let ((target (gentemp)))
+  (let ((target (format nil "L~D" *compile1-label-counter*)))
+    (incf *compile1-label-counter*)
     (compile1-genseq (compile1 (stat-if-test ast) t)
                      (compile1-gen 'FJUMP target)
                      (compile1 (stat-if-then ast) nil)
