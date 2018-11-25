@@ -4,10 +4,9 @@
 
 (defun cfg (compile1-function)
   (pprint compile1-function)
-  (let* ((code (compile1-function-code compile1-function))
-         (current-node (make-cfg-node :code '()))
+  (let* ((current-node (make-cfg-node :code '()))
          (nodes '()))
-    (dolist (c code)
+    (dolist (c (compile1-function-code compile1-function))
       (alexandria:destructuring-case c
         ((LABEL name)
          (push-end current-node nodes)
