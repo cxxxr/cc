@@ -50,7 +50,7 @@
   (compile1-gen 'LABEL (stat-label-name ast)))
 
 (defmethod compile1 ((ast stat-goto) return-value-p)
-  (compile1-gen 'GOTO (stat-goto-name ast)))
+  (compile1-gen 'JUMP (stat-goto-name ast)))
 
 (defmethod compile1 ((ast binop) return-value-p)
   (compile1-genseq (compile1 (binop-x ast) t)
