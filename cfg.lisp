@@ -13,7 +13,7 @@
          (push-end current-node nodes)
          (setf current-node (make-cfg-node :name name :code '())))
         #+(or)
-        (((JUMP FJUMP) name)
+        (((JUMP TJUMP) name)
          )
         ((t &rest rest)
          (declare (ignore rest))

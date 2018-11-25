@@ -6,6 +6,10 @@
 (defun compile1-local-variable-p (name)
   (position name *compile1-variables* :test #'string= :key #'ident-name))
 
+(defun compile1-gen-label ()
+  (prog1 (format nil "L~D" *compile1-label-counter*)
+    (incf *compile1-label-counter*)))
+
 (defun compile1-gen (op &rest args)
   (list (cons op args)))
 
@@ -36,13 +40,15 @@
         :append (compile1 statement nil)))
 
 (defmethod compile1 ((ast stat-if) return-value-p)
-  (let ((target (format nil "L~D" *compile1-label-counter*)))
-    (incf *compile1-label-counter*)
+  (let ((then-label (compile1-gen-label))
+        (end-label (compile1-gen-label)))
     (compile1-genseq (compile1 (stat-if-test ast) t)
-                     (compile1-gen 'FJUMP target)
+                     (compile1-gen 'TJUMP then-label)
+                     (compile1 (stat-if-else ast) nil)
+                     (compile1-gen 'JUMP end-label)
+                     (compile1-gen 'LABEL then-label)
                      (compile1 (stat-if-then ast) nil)
-                     (compile1-gen 'LABEL target)
-                     (compile1 (stat-if-else ast) nil))))
+                     (compile1-gen 'LABEL end-label))))
 
 (defmethod compile1 ((ast stat-return) return-value-p)
   (compile1-genseq (if (stat-return-expr ast)
