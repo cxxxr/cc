@@ -56,7 +56,7 @@
   (compile1-genseq (compile1 (binop-x ast) t)
                    (compile1 (binop-y ast) t)
                    (compile1-gen (etypecase ast
-                                   (binop-add 'I32.DD)
+                                   (binop-add 'I32.ADD)
                                    (binop-sub 'I32.SUB)
                                    (binop-mul 'I32.MUL)
                                    (binop-div 'I32.DIV)
