@@ -1,0 +1,22 @@
+(in-package :cc)
+
+(defstruct cfg-node name code)
+
+(defun cfg (compile1-function)
+  (pprint compile1-function)
+  (let* ((code (compile1-function-code compile1-function))
+         (current-node (make-cfg-node :code '()))
+         (nodes '()))
+    (dolist (c code)
+      (alexandria:destructuring-case c
+        ((LABEL name)
+         (push-end current-node nodes)
+         (setf current-node (make-cfg-node :name name :code '())))
+        #+(or)
+        (((JUMP FJUMP) name)
+         )
+        ((t &rest rest)
+         (declare (ignore rest))
+         (push-end c (cfg-node-code current-node)))))
+    (push-end current-node nodes)
+    nodes))
