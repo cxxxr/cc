@@ -4,7 +4,7 @@
 
 (defun cfg (compile1-function)
   (pprint compile1-function)
-  (let* ((current-node (make-cfg-node :code '()))
+  (let* ((current-node (make-cfg-node :name 0 :code '()))
          (nodes '()))
     (dolist (c (compile1-function-code compile1-function))
       (alexandria:destructuring-case c

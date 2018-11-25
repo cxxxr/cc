@@ -7,8 +7,7 @@
   (position name *compile1-variables* :test #'string= :key #'ident-name))
 
 (defun compile1-gen-label ()
-  (prog1 *compile1-label-counter*
-    (incf *compile1-label-counter*)))
+  (incf *compile1-label-counter*))
 
 (defun compile1-gen (op &rest args)
   (list (cons op args)))
