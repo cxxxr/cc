@@ -80,7 +80,7 @@
                   (binop-ge 'i32.ge_s)))))
 
 (defmethod gen-wat-aux ((ast unop-negate))
-  (gen-seq (gen-wat-aux (binop-x ast))
+  (gen-seq (gen-wat-aux (unop-x ast))
            (gen 'i32.const -1)
            (gen 'i32.mul)))
 

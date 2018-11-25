@@ -69,10 +69,10 @@
 (defclass binop-gt (binop) ())
 (defclass binop-ge (binop) ())
 
-(defclass unary-operator (ast)
-  ((x :initarg :x :reader binop-x)))
+(defclass unop (ast)
+  ((x :initarg :x :reader unop-x)))
 
-(defclass unop-negate (unary-operator) ())
+(defclass unop-negate (unop) ())
 
 (defclass ident (ast)
   ((name :initarg :name :reader ident-name)
@@ -132,7 +132,7 @@
                ((binop x y)
                 (walk-ast x function)
                 (walk-ast y function))
-               ((unary-operator x)
+               ((unop x)
                 (walk-ast x function))
                ((call-function arguments)
                 (dolist (arg arguments)
