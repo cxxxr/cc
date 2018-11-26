@@ -1,5 +1,6 @@
 (in-package :cc)
 
+(defstruct cfg nodes)
 (defstruct cfg-node name code edges mark)
 
 (defun find-cfg-node (name nodes)
@@ -17,8 +18,7 @@
                (f (find-cfg-node edge nodes)))))
     (f (first nodes))))
 
-(defun cfg (compile1-function)
-  (pprint compile1-function)
+(defun cfg-1 (compile1-function)
   (let* ((current-node (make-cfg-node :name 0 :code '()))
          (nodes '())
          (tr-table))
@@ -47,4 +47,9 @@
       (next-node nil)
       (chain-cfg-node-edges nodes tr-table)
       (cfg-mark nodes)
-      (delete nil nodes :key #'cfg-node-mark))))
+      (setf (compile1-function-cfg compile1-function)
+            (make-cfg :nodes (delete nil nodes :key #'cfg-node-mark)))
+      compile1-function)))
+
+(defun cfg (compile1-functions)
+  (mapcar #'cfg-1 compile1-functions))

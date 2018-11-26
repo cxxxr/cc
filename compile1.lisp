@@ -18,7 +18,8 @@
 (defstruct compile1-function
   name
   parameters
-  code)
+  code
+  cfg)
 
 (defgeneric compile1 (ast return-value-p))
 
