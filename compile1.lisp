@@ -3,6 +3,12 @@
 (defvar *compile1-variables* '())
 (defvar *compile1-label-counter* 0)
 
+(defstruct fn
+  name
+  parameters
+  code
+  cfg)
+
 (defun compile1-local-variable-p (name)
   (position name *compile1-variables* :test #'string= :key #'ident-name))
 
@@ -15,12 +21,6 @@
 (defun compile1-genseq (&rest args)
   (apply #'append args))
 
-(defstruct compile1-function
-  name
-  parameters
-  code
-  cfg)
-
 (defgeneric compile1 (ast return-value-p))
 
 (defmethod compile1 ((ast program) return-value-p)
@@ -30,7 +30,7 @@
 
 (defmethod compile1 ((ast func) return-value-p)
   (let ((*compile1-variables* (func-parameters ast)))
-    (make-compile1-function
+    (make-fn
      :name (func-name ast)
      :parameters (loop :for () :in (func-parameters ast) :collect `(local i32))
      :code (compile1 (func-stat-block ast) nil))))

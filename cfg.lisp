@@ -18,7 +18,7 @@
                (f (find-cfg-node edge nodes)))))
     (f (first nodes))))
 
-(defun cfg-1 (compile1-function)
+(defun cfg-1 (fn)
   (let* ((current-node (make-cfg-node :name 0 :code '()))
          (nodes '())
          (tr-table))
@@ -29,7 +29,7 @@
                (push-end c (cfg-node-code current-node)))
              (set-to-tr-table (to)
                (push-end (cons (cfg-node-name current-node) to) tr-table)))
-      (dolist (c (compile1-function-code compile1-function))
+      (dolist (c (fn-code fn))
         (alexandria:destructuring-case c
           ((LABEL name)
            (set-to-tr-table name)
@@ -47,9 +47,9 @@
       (next-node nil)
       (chain-cfg-node-edges nodes tr-table)
       (cfg-mark nodes)
-      (setf (compile1-function-cfg compile1-function)
+      (setf (fn-cfg fn)
             (make-cfg :nodes (delete nil nodes :key #'cfg-node-mark)))
-      compile1-function)))
+      fn)))
 
-(defun cfg (compile1-functions)
-  (mapcar #'cfg-1 compile1-functions))
+(defun cfg (fns)
+  (mapcar #'cfg-1 fns))
