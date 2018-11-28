@@ -116,3 +116,28 @@
                    (compile1-gen 'CALL (call-function-name ast))
                    (unless return-value-p
                      (compile1-gen 'DROP))))
+
+(defun resolve-label-names (code)
+  (let ((label-names '()))
+    (flet ((find-label (name) (position name label-names :test #'equal)))
+      (dolist (c code)
+        (alexandria:destructuring-case c
+          ((LABEL name)
+           (when (find-label name)
+             (error "ラベル名が重複しています: ~A" name))
+           (push name label-names))))
+      (loop :for c :in code
+            :collect (alexandria:destructuring-case c
+                       (((JUMP TJUMP) name)
+                        (let ((pos (find-label name)))
+                          (unless pos (error "ラベルが存在しません: ~A" name))
+                          (list (first c) pos)))
+                       ((LABEL name)
+                        (list (first c) (find-label name)))
+                       ((t &rest args)
+                        (declare (ignore args))
+                        c))))))
+
+(defun compile1 (ast)
+  (let ((*gensym-counter* 0))
+    (compile1-aux ast nil)))
