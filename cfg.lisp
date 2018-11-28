@@ -1,23 +1,18 @@
 (in-package :cc)
 
 (defstruct cfg nodes)
-(defstruct cfg-node name code edges mark)
+(defstruct cfg-node name code mark)
 
 (defun find-cfg-node (name nodes)
   (let ((node (find name nodes :key #'cfg-node-name :test #'equal)))
     (assert (not (null node)))
     node))
 
-(defun chain-cfg-node-edges (nodes tr-table)
-  (loop :for (from . to) :in tr-table
-        :do (let ((from-node (find-cfg-node from nodes)))
-              (pushnew to (cfg-node-edges from-node)))))
-
-(defun cfg-mark (nodes)
+(defun cfg-mark (nodes tr-table)
   (labels ((f (node)
              (unless (cfg-node-mark node)
                (setf (cfg-node-mark node) t)
-               (dolist (edge (cfg-node-edges node))
+               (dolist (edge (gethash (cfg-node-name node) tr-table))
                  (f (find-cfg-node edge nodes))))))
     (f (first nodes))))
 
@@ -39,14 +34,16 @@
 (defun cfg-1 (fn)
   (let* ((current-node (make-cfg-node :name (gensym) :code '()))
          (nodes '())
-         (tr-table))
+         (tr-table (make-hash-table :test 'equal)))
     (labels ((next-node (name)
                (push-end current-node nodes)
                (setf current-node (make-cfg-node :name name :code '())))
              (append-code (instr)
                (push-end instr (cfg-node-code current-node)))
              (set-to-tr-table (to)
-               (push-end (cons (cfg-node-name current-node) to) tr-table)))
+               (let ((from (cfg-node-name current-node)))
+                 (setf (gethash from tr-table)
+                       (cons to (gethash from tr-table))))))
       (dolist (instr (fn-code fn))
         (trivia:match instr
           ((instr-label arg1)
@@ -64,8 +61,7 @@
       (next-node nil)
       (progn
         ;; mark & sweep
-        (chain-cfg-node-edges nodes tr-table)
-        (cfg-mark nodes)
+        (cfg-mark nodes tr-table)
         (setf nodes (delete nil nodes :key #'cfg-node-mark)))
       (let ((cfg (make-cfg :nodes nodes)))
         (setf (fn-code fn) cfg)
