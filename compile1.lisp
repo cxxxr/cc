@@ -44,7 +44,7 @@
         (end-label (compile1-gen-label)))
     (compile1-genseq (compile1 (stat-if-test ast) t)
                      (compile1-gen 'TJUMP then-label)
-                     (compile1 (stat-if-else ast) nil)
+                     (when (stat-if-else ast) (compile1 (stat-if-else ast) nil))
                      (compile1-gen 'JUMP end-label)
                      (compile1-gen 'LABEL then-label)
                      (compile1 (stat-if-then ast) nil)
