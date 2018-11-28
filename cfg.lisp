@@ -4,7 +4,9 @@
 (defstruct cfg-node name code edges mark)
 
 (defun find-cfg-node (name nodes)
-  (find name nodes :key #'cfg-node-name))
+  (let ((node (find name nodes :key #'cfg-node-name :test #'equal)))
+    (assert (not (null node)))
+    node))
 
 (defun chain-cfg-node-edges (nodes tr-table)
   (loop :for (from . to) :in tr-table
