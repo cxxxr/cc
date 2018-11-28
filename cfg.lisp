@@ -21,6 +21,21 @@
                  (f (find-cfg-node edge nodes))))))
     (f (first nodes))))
 
+(defun cfg-resolve-node-names (cfg)
+  (let ((node-name-table (make-hash-table :test 'equal))
+        (id 0))
+    (dolist (node (cfg-nodes cfg))
+      (let ((name (cfg-node-name node)))
+        (setf (gethash name node-name-table) id)
+        (setf (cfg-node-name node) id)
+        (incf id)))
+    (dolist (node (cfg-nodes cfg))
+      (dolist (instr (cfg-node-code node))
+        (trivia:match instr
+          ((instr-jump arg1)
+           (setf (instr-arg1 instr) (gethash arg1 node-name-table)))))))
+  cfg)
+
 (defun cfg-1 (fn)
   (let* ((current-node (make-cfg-node :name (gensym) :code '()))
          (nodes '())
@@ -47,11 +62,15 @@
           (_
            (append-code instr))))
       (next-node nil)
-      (chain-cfg-node-edges nodes tr-table)
-      (cfg-mark nodes)
-      (setf (fn-cfg fn)
-            (make-cfg :nodes (delete nil nodes :key #'cfg-node-mark)))
-      fn)))
+      (progn
+        ;; mark & sweep
+        (chain-cfg-node-edges nodes tr-table)
+        (cfg-mark nodes)
+        (setf nodes (delete nil nodes :key #'cfg-node-mark)))
+      (let ((cfg (make-cfg :nodes nodes)))
+        (setf (fn-code fn) cfg)
+        (cfg-resolve-node-names cfg))))
+  fn)
 
 (defun cfg (fns)
   (mapcar #'cfg-1 fns))

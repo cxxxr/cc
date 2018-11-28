@@ -4,7 +4,7 @@
 
 (defclass instr ()
   ((opcode :initarg :opcode :reader instr-opcode)
-   (arg1 :initarg :arg1 :reader instr-arg1)))
+   (arg1 :initarg :arg1 :accessor instr-arg1)))
 
 (defclass instr-label (instr) ())
 (defclass instr-jump (instr) ())
@@ -19,8 +19,7 @@
 (defstruct fn
   name
   parameters
-  code
-  cfg)
+  code)
 
 (defun compile1-local-variable-p (name)
   (position name *compile1-variables* :test #'string= :key #'ident-name))
