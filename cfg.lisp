@@ -15,9 +15,10 @@
 
 (defun cfg-mark (nodes)
   (labels ((f (node)
-             (setf (cfg-node-mark node) t)
-             (dolist (edge (cfg-node-edges node))
-               (f (find-cfg-node edge nodes)))))
+             (unless (cfg-node-mark node)
+               (setf (cfg-node-mark node) t)
+               (dolist (edge (cfg-node-edges node))
+                 (f (find-cfg-node edge nodes))))))
     (f (first nodes))))
 
 (defun cfg-1 (fn)
