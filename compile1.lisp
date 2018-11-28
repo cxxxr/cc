@@ -2,6 +2,20 @@
 
 (defvar *compile1-variables* '())
 
+(defclass instr ()
+  ((opcode :initarg :opcode :reader instr-opcode)
+   (arg1 :initarg :arg1 :reader instr-arg1)))
+
+(defclass instr-label (instr) ())
+(defclass instr-jump (instr) ())
+(defclass instr-tjump (instr-jump) ())
+
+(defmethod print-object ((instr instr) stream)
+  (print-unreadable-object (instr stream)
+    (if (instr-arg1 instr)
+        (format stream "~A ~A" (instr-opcode instr) (instr-arg1 instr))
+        (princ (instr-opcode instr) stream))))
+
 (defstruct fn
   name
   parameters
@@ -14,8 +28,14 @@
 (defun compile1-gen-label (x)
   (gensym x))
 
-(defun compile1-gen (op &rest args)
-  (list (cons op args)))
+(defun compile1-gen (op &optional arg1)
+  (list (make-instance (case op
+                         (LABEL 'instr-label)
+                         (JUMP 'instr-jump)
+                         (TJUMP 'instr-tjump)
+                         (otherwise 'instr))
+                       :opcode op
+                       :arg1 arg1)))
 
 (defun compile1-genseq (&rest args)
   (apply #'append args))
@@ -120,24 +140,22 @@
 (defun resolve-label-names (code)
   (let ((label-names '()))
     (flet ((find-label (name) (position name label-names :test #'equal)))
-      (dolist (c code)
-        (alexandria:destructuring-case c
-          ((LABEL name)
-           (when (find-label name)
-             (error "ラベル名が重複しています: ~A" name))
-           (push name label-names))))
-      (loop :for c :in code
-            :collect (alexandria:destructuring-case c
-                       (((JUMP TJUMP) name)
-                        (let ((pos (find-label name)))
-                          (unless pos (error "ラベルが存在しません: ~A" name))
-                          (list (first c) pos)))
-                       ((LABEL name)
-                        (list (first c) (find-label name)))
-                       ((t &rest args)
-                        (declare (ignore args))
-                        c))))))
+      (dolist (instr code)
+        (trivia:match instr
+          ((instr-label arg1)
+           (when (find-label arg1)
+             (error "ラベル名が重複しています: ~A" arg1))
+           (push-end arg1 label-names))))
+      (loop :for instr :in code
+            :collect (trivia:match instr
+                       ((instr-jump arg1)
+                        (let ((pos (find-label arg1)))
+                          (unless pos (error "ラベルが存在しません: ~A" arg1))
+                          (reinitialize-instance instr :arg1 (1+ pos))))
+                       ((instr-label arg1)
+                        (reinitialize-instance instr :arg1 (1+ (find-label arg1))))
+                       (_
+                        instr))))))
 
 (defun compile1 (ast)
-  (let ((*gensym-counter* 0))
-    (compile1-aux ast nil)))
+  (compile1-aux ast nil))
