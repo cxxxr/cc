@@ -51,7 +51,7 @@
     (make-fn
      :name (func-name ast)
      :parameters (loop :for () :in (func-parameters ast) :collect `(local i32))
-     :code (resolve-label-names (compile1-aux (func-stat-block ast) nil)))))
+     :code (check-label-names (compile1-aux (func-stat-block ast) nil)))))
 
 (defmethod compile1-aux ((ast stat-block) return-value-p)
   (loop :for statement :in (stat-block-statements ast)
@@ -137,9 +137,9 @@
                    (unless return-value-p
                      (compile1-gen 'DROP))))
 
-(defun resolve-label-names (code)
+(defun check-label-names (code)
   (let ((label-names '()))
-    (flet ((find-label (name) (position name label-names :test #'equal)))
+    (flet ((find-label (name) (find name label-names :test #'equal)))
       (dolist (instr code)
         (trivia:match instr
           ((instr-label arg1)
@@ -147,15 +147,12 @@
              (error "ラベル名が重複しています: ~A" arg1))
            (push-end arg1 label-names))))
       (loop :for instr :in code
-            :collect (trivia:match instr
-                       ((instr-jump arg1)
-                        (let ((pos (find-label arg1)))
-                          (unless pos (error "ラベルが存在しません: ~A" arg1))
-                          (reinitialize-instance instr :arg1 (1+ pos))))
-                       ((instr-label arg1)
-                        (reinitialize-instance instr :arg1 (1+ (find-label arg1))))
-                       (_
-                        instr))))))
+            :do (trivia:match instr
+                  ((instr-jump arg1)
+                   (unless (find-label arg1) (error "ラベルが存在しません: ~A" arg1)))
+                  (_
+                   instr)))))
+  code)
 
 (defun compile1 (ast)
   (compile1-aux ast nil))

@@ -22,7 +22,7 @@
     (f (first nodes))))
 
 (defun cfg-1 (fn)
-  (let* ((current-node (make-cfg-node :name 0 :code '()))
+  (let* ((current-node (make-cfg-node :name (gensym) :code '()))
          (nodes '())
          (tr-table))
     (labels ((next-node (name)
