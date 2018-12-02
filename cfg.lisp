@@ -42,8 +42,7 @@
                (push-end instr (cfg-node-code current-node)))
              (set-to-tr-table (to)
                (let ((from (cfg-node-name current-node)))
-                 (setf (gethash from tr-table)
-                       (cons to (gethash from tr-table))))))
+                 (push to (gethash from tr-table)))))
       (dolist (instr (fn-code fn))
         (trivia:match instr
           ((instr-label arg1)
