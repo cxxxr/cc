@@ -13,5 +13,5 @@
                (:file "parser")
                (:file "compile1")
                (:file "cfg")
-               (:file "compile")
+               (:file "compile-wat")
                (:file "cc")))
