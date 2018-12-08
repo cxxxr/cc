@@ -51,8 +51,8 @@
 
 (defun compile-wat-fn (fn)
   `(func ,(signature-name (fn-name fn))
-         ,(fn-parameters fn)
          (result i32)
+         ,@(fn-parameters fn)
          ,(wat-switch (cfg-nodes (fn-code fn)))))
 
 (defun compile-wat (fn-list)
