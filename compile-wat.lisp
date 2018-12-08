@@ -18,7 +18,9 @@
                   ((instr :opcode 'CALL arg1)
                    `((CALL ,(signature-name arg1))))
                   (_
-                   `((,(instr-opcode instr) ,(instr-arg1 instr)))))))
+                   (if (slot-boundp instr 'arg1)
+                       `((,(instr-opcode instr) ,(instr-arg1 instr)))
+                       `((,(instr-opcode instr))))))))
 
 (defun wat-switch (cfg-nodes)
   (let ((switch-selector-var (unique-signature-name))

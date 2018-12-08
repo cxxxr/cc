@@ -27,14 +27,15 @@
 (defun compile1-gen-label (x)
   (gensym x))
 
-(defun compile1-gen (op &optional arg1)
-  (list (make-instance (case op
-                         (LABEL 'instr-label)
-                         (JUMP 'instr-jump)
-                         (TJUMP 'instr-tjump)
-                         (otherwise 'instr))
-                       :opcode op
-                       :arg1 arg1)))
+(defun compile1-gen (op &optional (arg1 nil arg1-p))
+  (list (apply #'make-instance
+               (case op
+                 (LABEL 'instr-label)
+                 (JUMP 'instr-jump)
+                 (TJUMP 'instr-tjump)
+                 (otherwise 'instr))
+               :opcode op
+               (if arg1-p (list :arg1 arg1)))))
 
 (defun compile1-genseq (&rest args)
   (apply #'append args))
