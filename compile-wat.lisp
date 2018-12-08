@@ -38,7 +38,7 @@
                (if (null nodes)
                    `(,(block-or-loop prev-label)
                      ,prev-label
-                     (BR-TABLE ,@(mapcar #'cfg-node-name cfg-nodes)
+                     (BR_TABLE ,@(mapcar #'cfg-node-name cfg-nodes)
                                ,(cfg-node-name (alexandria:lastcar cfg-nodes))
                                (GET_LOCAL ,switch-selector-var)))
                    (let ((cfg-node (first nodes)))
