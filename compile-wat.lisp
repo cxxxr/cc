@@ -1,10 +1,16 @@
 (in-package :cc)
 
-(defun signature-name (x)
+(defun %signature-name (x)
   (intern (format nil "$~:@(~A~)" x)))
 
+(defun signature-name (x)
+  (%signature-name x))
+
 (defun unique-signature-name ()
-  (signature-name (gensym)))
+  (%signature-name (gensym)))
+
+(defun block-signature-name (node-num)
+  (%signature-name (format nil "_BLOCK_~D" node-num)))
 
 (defun wat-goto (switch-selector-var switch-label selector-value)
   `((I32.CONST ,selector-value)
@@ -45,7 +51,7 @@
                    (let ((cfg-node (first nodes)))
                      `(,(block-or-loop prev-label)
                        ,prev-label
-                       ,(f (rest nodes) (signature-name (cfg-node-name cfg-node)))
+                       ,(f (rest nodes) (block-signature-name (cfg-node-name cfg-node)))
                        ,@(wat-code (cfg-node-code cfg-node) switch-selector-var switch-label)
                        ,@(next nodes))))))
       (f cfg-nodes switch-label))))
