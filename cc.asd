@@ -14,4 +14,5 @@
                (:file "compile1")
                (:file "cfg")
                (:file "compile-wat")
+               (:file "wasm")
                (:file "cc")))
