@@ -57,5 +57,6 @@
          ,(wat-switch (cfg-nodes (fn-code fn)))))
 
 (defun compile-wat (fn-list)
-  (dolist (fn fn-list)
-    (pprint (compile-wat-fn fn))))
+  `(module
+    ,@(mapcar #'compile-wat-fn fn-list)
+    (export "main" (func $main))))
