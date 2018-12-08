@@ -7,7 +7,8 @@
   (signature-name (gensym)))
 
 (defun wat-goto (switch-selector-var switch-label selector-value)
-  `((SET_LOCAL ,switch-selector-var ,selector-value)
+  `((I32.CONST ,selector-value)
+    (SET_LOCAL ,switch-selector-var)
     (BR ,switch-label)))
 
 (defun wat-code (code switch-selector-var switch-label)
