@@ -61,9 +61,9 @@
   (let* ((*local-variables* '())
          (body (wat-switch (cfg-nodes (fn-code fn)))))
     `(func ,(signature-name (fn-name fn))
-           (result i32)
            ,@(fn-parameters fn)
-           ,@(loop :for name :in *local-variables* :collect `(local ,name i32))
+           (RESULT i32)
+           ,@(loop :for name :in *local-variables* :collect `(LOCAL ,name i32))
            ,body)))
 
 (defun compile-wat (fn-list)
