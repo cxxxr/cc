@@ -19,7 +19,6 @@
    const bytes = new Uint8Array({{var wasm}});
    WebAssembly.instantiate(bytes, importObject).then(results => {
      let result = results.instance.exports.main();
-     console.log(result);
      document.getElementById('test').innerText = `Result: ${result}`;
    });
    
