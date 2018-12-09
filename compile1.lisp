@@ -12,7 +12,7 @@
 
 (defmethod print-object ((instr instr) stream)
   (print-unreadable-object (instr stream)
-    (if (instr-arg1 instr)
+    (if (slot-boundp instr 'arg1)
         (format stream "~A ~A" (instr-opcode instr) (instr-arg1 instr))
         (princ (instr-opcode instr) stream))))
 
