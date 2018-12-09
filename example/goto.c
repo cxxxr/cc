@@ -1,6 +1,6 @@
 loop(n, end) {
         start:
-        log(n);
+        print(n);
         n = n + 1;
         if (n <= end) {
                 goto start;

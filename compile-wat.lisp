@@ -70,6 +70,6 @@
 
 (defun compile-wat (fn-list)
   `(module
-    (import "console" "log" (func $log (param i32) (result i32)))
+    (import "console" "log" (func $print (param i32) (result i32)))
     ,@(mapcar #'compile-wat-fn fn-list)
     (export "main" (func $main))))
