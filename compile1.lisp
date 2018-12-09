@@ -50,7 +50,7 @@
   (let ((*compile1-variables* (func-parameters ast)))
     (make-fn
      :name (func-name ast)
-     :parameters (loop :for () :in (func-parameters ast) :collect `(local i32))
+     :parameters (loop :for () :in (func-parameters ast) :collect `(param i32))
      :code (check-label-names (compile1-aux (func-stat-block ast) nil)))))
 
 (defmethod compile1-aux ((ast stat-block) return-value-p)
