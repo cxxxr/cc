@@ -22,6 +22,8 @@
 (defun wat-code (code switch-selector-var switch-label)
   (loop :for instr :in code
         :append (trivia:match instr
+                  ((instr-tjump arg1)
+                   `((IF (THEN ,@(wat-goto switch-selector-var switch-label arg1)))))
                   ((instr-jump arg1)
                    (wat-goto switch-selector-var switch-label arg1))
                   ((instr :opcode 'CALL arg1)
