@@ -194,34 +194,10 @@
             (setf (gethash (ident-name ident) env)
                   (hash-table-count env)))))
 
-(defun walk-ast-with-name-resolution (ast)
-  (let (env)
-    (declare (special env))
-    (walk-ast ast
-              (lambda (ast cont)
-                (trivia:match ast
-                  ((func parameters)
-                   (let ((env (make-hash-table :test 'equal)))
-                     (declare (special env))
-                     (dolist (ident parameters)
-                       (set-ident-env ident env))
-                     (funcall cont)
-                     (setf (func-local-idents ast)
-                           (mapcar #'make-ident
-                                   (set-difference (alexandria:hash-table-keys env)
-                                                   (mapcar #'ident-name parameters)
-                                                   :test #'string=)))))
-                  ((ident)
-                   (set-ident-env ast env)
-                   (funcall cont))
-                  (_
-                   (funcall cont)))))))
-
 (defun parse (code)
   (let ((ast (yacc:parse-with-lexer
               (let ((scanner (make-scanner 'cc code)))
                 (lambda ()
                   (lex scanner)))
               *parser*)))
-    (walk-ast-with-name-resolution ast)
     ast))
