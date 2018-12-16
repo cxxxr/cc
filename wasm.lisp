@@ -12,7 +12,7 @@
   (alexandria:read-file-into-byte-vector "wasm/simple.wasm"))
 
 (defun wat-to-wasm (wat)
-  (with-open-file (*standard-output* "wasm/simple.wat"
+  (with-open-file (*standard-output* (asdf:system-relative-pathname :cc "wasm/simple.wat")
                                      :direction :output
                                      :if-exists :supersede
                                      :if-does-not-exist :create)
@@ -23,7 +23,7 @@
   (format nil "[~{~D~^,~}]" (coerce octets 'list)))
 
 (defun gen-html-file (wasm-octets)
-  (with-open-file (*standard-output* "./index.html"
+  (with-open-file (*standard-output* (asdf:system-relative-pathname :cc "./index.html")
                                      :direction :output
                                      :if-exists :supersede
                                      :if-does-not-exist :create)
