@@ -13,8 +13,20 @@
   (comp (uiop:read-file-string file)))
 |#
 
+(defun pprint* (x)
+  (pprint x)
+  (terpri)
+  x)
+
 (defun comp (code)
-  (cfg (compile1 (parse code))))
+  (gen-html-file
+   (wat-to-wasm
+    (pprint*
+     (compile-wat
+      (pprint*
+       (cfg
+        (pprint*
+         (compile1 (parse code))))))))))
 
 (defun comp-file (file)
   (comp (uiop:read-file-string file)))
