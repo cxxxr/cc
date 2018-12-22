@@ -5,12 +5,19 @@
     (make-instance 'program :functions functions)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun accept-parsed-function (name parameters stat-block)
-    (declare (ignore { }))
-    (make-instance 'func
-                   :name name
-                   :parameters (mapcar #'make-ident parameters)
-                   :stat-block stat-block)))
+  (defun accept-parsed-function (&rest args)
+    (trivia:match args
+      ((list name parameters stat-block)
+       (make-instance 'func
+                      :name name
+                      :parameters (mapcar #'make-ident parameters)
+                      :stat-block stat-block))
+      ((list type name parameters stat-block)
+       (make-instance 'func
+                      :name name
+                      :parameters (mapcar #'make-ident parameters)
+                      :stat-block stat-block
+                      :return-type type)))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-parameters (paren parameters)
@@ -111,7 +118,7 @@
 (yacc:define-parser *parser*
   (:start-symbol program)
   (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, #\: :number :word :eq :ne
-                   :ge :gt :le :lt :if :else :return :goto))
+                   :ge :gt :le :lt :if :else :return :goto :int))
   (:precedence ((:left #\* #\/ #\%)
                 (:left #\+ #\-)
                 (:left :lt :le :gt :ge)
@@ -123,7 +130,8 @@
    ()
    (func functions #'cons))
   (func
-   (:word parameters stat-block #'accept-parsed-function))
+   (:word parameters stat-block #'accept-parsed-function)
+   (:int :word parameters stat-block #'accept-parsed-function))
   (parameters
    (#\( parameters* #'accept-parsed-parameters))
   (parameters*

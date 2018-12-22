@@ -18,7 +18,10 @@
     :accessor func-local-idents)
    (stat-block
     :initarg :stat-block
-    :reader func-stat-block)))
+    :reader func-stat-block)
+   (return-type
+    :initarg :return-type
+    :reader func-return-type)))
 
 (defclass stat-block (ast)
   ((statements

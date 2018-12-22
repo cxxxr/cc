@@ -44,6 +44,7 @@
        ("else" (values :else :else))
        ("return" (values :return :return))
        ("goto" (values :goto :goto))
+       ("int" (values :int :int))
        (otherwise (values :word word)))))
   ("[0-9]+"
    (values :number
