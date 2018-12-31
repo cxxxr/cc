@@ -19,7 +19,8 @@
 (defstruct fn
   name
   parameters
-  code)
+  code
+  return-type)
 
 (defun compile1-local-variable-p (name)
   (position name *compile1-variables* :test #'string= :key #'ident-name))
@@ -51,7 +52,8 @@
     (make-fn
      :name (func-name ast)
      :parameters (loop :for () :in (func-parameters ast) :collect `(param i32))
-     :code (check-label-names (compile1-aux (func-stat-block ast) nil)))))
+     :code (check-label-names (compile1-aux (func-stat-block ast) nil))
+     :return-type (func-return-type ast))))
 
 (defmethod compile1-aux ((ast stat-block) return-value-p)
   (loop :for statement :in (stat-block-statements ast)
