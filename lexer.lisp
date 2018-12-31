@@ -45,6 +45,7 @@
        ("return" (values :return :return))
        ("goto" (values :goto :goto))
        ("int" (values :int :int))
+       ("void" (values :void :void))
        (otherwise (values :word word)))))
   ("[0-9]+"
    (values :number
@@ -62,5 +63,5 @@
   ("<"
    (values :lt :lt))
   ("."
-   (let ((char (char (text) 0)))
-     (values char char))))
+   (let ((s (char-to-symbol (char (text) 0))))
+     (values s s))))

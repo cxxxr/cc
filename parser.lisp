@@ -22,7 +22,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-parameters (paren parameters)
     (declare (ignore paren))
-    (remove-if (lambda (s) (member s '(#\) #\,)))
+    (remove-if (lambda (s) (member s '(\) \,)))
                (alexandria:flatten parameters))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -32,12 +32,12 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-binary-expression (a b c)
     (make-instance (ecase b
-                     (#\= 'binop-assign)
-                     (#\+ 'binop-add)
-                     (#\- 'binop-sub)
-                     (#\* 'binop-mul)
-                     (#\/ 'binop-div)
-                     (#\% 'binop-rem)
+                     (\= 'binop-assign)
+                     (\+ 'binop-add)
+                     (\- 'binop-sub)
+                     (\* 'binop-mul)
+                     (\/ 'binop-div)
+                     (\% 'binop-rem)
                      (:eq 'binop-eq)
                      (:ne 'binop-ne)
                      (:lt 'binop-lt)
@@ -50,8 +50,8 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-unary-expression (a b)
     (ecase a
-      (#\+ b)
-      (#\- (make-instance 'unop-negate :x b)))))
+      (\+ b)
+      (\- (make-instance 'unop-negate :x b)))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-paren-expression (a b c)
@@ -82,9 +82,9 @@
   (defun accept-parsed-return (&rest args)
     (declare (ignore _return))
     (trivia:ematch args
-      ((list _ expr #\;)
+      ((list _ expr \;)
        (make-instance 'stat-return :expr expr))
-      ((list _ #\;)
+      ((list _ \;)
        (make-instance 'stat-return :expr nil)))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -104,7 +104,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun accept-parsed-arguments (paren arguments)
     (declare (ignore paren))
-    (remove-if (lambda (x) (member x '(#\) #\,)))
+    (remove-if (lambda (x) (member x '(\) \,)))
                (alexandria:flatten arguments))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -116,14 +116,15 @@
     (make-instance 'const :value x)))
 
 (yacc:define-parser *parser*
+  (:muffle-conflicts t)
   (:start-symbol program)
-  (:terminals (#\+ #\- #\* #\/ #\( #\) #\= #\; #\% #\{ #\} #\, #\: :number :word :eq :ne
-                   :ge :gt :le :lt :if :else :return :goto :int))
-  (:precedence ((:left #\* #\/ #\%)
-                (:left #\+ #\-)
+  (:terminals (\+ \- \* \/ \( \) \= \; \% \{ \} \, \: :number :word :eq :ne
+                   :ge :gt :le :lt :if :else :return :goto :int :void))
+  (:precedence ((:left \* \/ \%)
+                (:left \+ \-)
                 (:left :lt :le :gt :ge)
                 (:left :eq :ne)
-                (:right #\=)))
+                (:right \=)))
   (program
    (functions #'accept-parsed-program))
   (functions
@@ -131,15 +132,18 @@
    (func functions #'cons))
   (func
    (:word parameters stat-block #'accept-parsed-function)
-   (:int :word parameters stat-block #'accept-parsed-function))
+   (type :word parameters stat-block #'accept-parsed-function))
+  (type
+   :int
+   :void)
   (parameters
-   (#\( parameters* #'accept-parsed-parameters))
+   (\( parameters* #'accept-parsed-parameters))
   (parameters*
    (:word parameters** #'list)
-   (#\) #'list))
+   (\) #'list))
   (parameters**
-   (#\, :word parameters** #'list)
-   (#\) #'list))
+   (\, :word parameters** #'list)
+   (\) #'list))
   (stats
    ()
    (stat stats #'concat-stats))
@@ -149,28 +153,28 @@
    stat-return
    stat-goto
    stat-label
-   (expression #\; #'accept-parsed-stat-expression))
+   (expression \; #'accept-parsed-stat-expression))
   (stat-if
-   (:if #\( expression #\) stat stat-else #'accept-parsed-if))
+   (:if \( expression \) stat stat-else #'accept-parsed-if))
   (stat-else
    (:else stat #'accept-parsed-else)
    ())
   (stat-block
-   (#\{ stats #\} #'accept-parsed-stat-block))
+   (\{ stats \} #'accept-parsed-stat-block))
   (stat-return
-   (:return expression #\; #'accept-parsed-return)
-   (:return #\; #'accept-parsed-return))
+   (:return expression \; #'accept-parsed-return)
+   (:return \; #'accept-parsed-return))
   (stat-goto
-   (:goto :word #\; #'accept-parsed-goto))
+   (:goto :word \; #'accept-parsed-goto))
   (stat-label
-   (:word #\: #'accept-parsed-label))
+   (:word \: #'accept-parsed-label))
   (expression
-   (expression #\= expression #'accept-parsed-binary-expression)
-   (expression #\+ expression #'accept-parsed-binary-expression)
-   (expression #\- expression #'accept-parsed-binary-expression)
-   (expression #\* expression #'accept-parsed-binary-expression)
-   (expression #\/ expression #'accept-parsed-binary-expression)
-   (expression #\% expression #'accept-parsed-binary-expression)
+   (expression \= expression #'accept-parsed-binary-expression)
+   (expression \+ expression #'accept-parsed-binary-expression)
+   (expression \- expression #'accept-parsed-binary-expression)
+   (expression \* expression #'accept-parsed-binary-expression)
+   (expression \/ expression #'accept-parsed-binary-expression)
+   (expression \% expression #'accept-parsed-binary-expression)
    (expression :eq expression #'accept-parsed-binary-expression)
    (expression :ne expression #'accept-parsed-binary-expression)
    (expression :ge expression #'accept-parsed-binary-expression)
@@ -182,19 +186,19 @@
   (call-function
    (:word arguments #'accept-parsed-call-function))
   (arguments
-   (#\( arguments* #'accept-parsed-arguments))
+   (\( arguments* #'accept-parsed-arguments))
   (arguments*
    (expression arguments** #'list)
-   (#\) #'list))
+   (\) #'list))
   (arguments**
-   (#\, expression arguments** #'list)
-   (#\) #'list))
+   (\, expression arguments** #'list)
+   (\) #'list))
   (term
    (:number #'make-const)
    (:word #'make-ident)
-   (#\+ expression #'accept-parsed-unary-expression)
-   (#\- expression #'accept-parsed-unary-expression)
-   (#\( expression #\) #'accept-parsed-paren-expression)))
+   (\+ expression #'accept-parsed-unary-expression)
+   (\- expression #'accept-parsed-unary-expression)
+   (\( expression \) #'accept-parsed-paren-expression)))
 
 (defun set-ident-env (ident env)
   (setf (ident-num ident)
